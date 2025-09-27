@@ -23,11 +23,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Run scraper to generate M3U8
+      - name: Determine script folder
+        id: folder
         run: |
-          # Set PYTHONPATH to find local modules
-          export PYTHONPATH="${PYTHONPATH}:$GITHUB_WORKSPACE"
-          python scraper.py
+          if [ -f "$GITHUB_WORKSPACE/scraper.py" ]; then
+            echo "folder=." >> $GITHUB_ENV
+          elif [ -f "$GITHUB_WORKSPACE/daddylive/scraper.py" ]; then
+            echo "folder=daddylive" >> $GITHUB_ENV
+          else
+            echo "scraper.py not found!" 
+            exit 1
+          fi
+
+      - name: Run scraper
+        run: |
+          echo "Running scraper from folder: ${{ env.folder }}"
+          export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}/${{ env.folder }}"
+          python ${{ env.folder }}/scraper.py
 
       - name: Commit and push updated playlist
         run: |
