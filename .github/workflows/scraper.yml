@@ -24,15 +24,15 @@ jobs:
           pip install requests beautifulsoup4
 
       - name: Run scraper to generate M3U8
-        working-directory: ./daddylive   # change if your scraper.py is in a subfolder
         run: |
-          export PYTHONPATH="${PYTHONPATH}:$GITHUB_WORKSPACE/daddylive"
+          # Set PYTHONPATH to find local modules
+          export PYTHONPATH="${PYTHONPATH}:$GITHUB_WORKSPACE"
           python scraper.py
 
       - name: Commit and push updated playlist
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add daddylive/out.m3u8 daddylive/tvg-ids.txt || true
+          git add out.m3u8 tvg-ids.txt || true
           git commit -m "Update M3U8 playlist" || echo "No changes to commit"
           git push
