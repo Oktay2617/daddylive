@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import os
 import json
+import requests
 import tvlogo
 import fetcher
 
@@ -9,7 +10,8 @@ daddyLiveChannelsFileName = '247channels.html'
 daddyLiveChannelsURL = 'https://thedaddy.to/24-7-channels.php'
 
 tvLogosFilename = 'tvlogos.html'
-tvLogosURL = 'https://github.com/tv-logo/tv-logos/tree/main/countries/united-states'
+# Raw HTML URL of TV logos page
+tvLogosURL = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/index.html'
 
 matches = []
 
@@ -44,6 +46,16 @@ def delete_file_if_exists(file_path):
         os.remove(file_path)
         print(f"File {file_path} deleted.")
 
+def fetch_tvlogos_html(url, filename):
+    """Fetch TV logos HTML from GitHub"""
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(response.text)
+        print(f"{filename} fetched from {url}")
+    else:
+        raise Exception(f"Failed to fetch {url}, status code {response.status_code}")
+
 # ----------------------
 # Cleanup old files
 # ----------------------
@@ -54,7 +66,7 @@ delete_file_if_exists('tvg-ids.txt')
 # Fetch HTML pages
 # ----------------------
 fetcher.fetchHTML(daddyLiveChannelsFileName, daddyLiveChannelsURL)
-fetcher.fetchHTML(tvLogosFilename, tvLogosURL)
+fetch_tvlogos_html(tvLogosURL, tvLogosFilename)  # Fetch latest logos HTML
 
 # ----------------------
 # Define search terms
