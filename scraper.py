@@ -1,100 +1,110 @@
-import requests
 from bs4 import BeautifulSoup
-import xml.etree.ElementTree as ET
 import os
 import json
-import yaml   # pip install pyyaml
+import tvlogo
+import fetcher
 
-# Local filenames
+# Filenames and URLs
 daddyLiveChannelsFileName = '247channels.html'
 daddyLiveChannelsURL = 'https://thedaddy.to/24-7-channels.php'
 
 tvLogosFilename = 'tvlogos.html'
 tvLogosURL = 'https://github.com/tv-logo/tv-logos/tree/main/countries/united-states'
 
-# Ensure output directory exists
-os.makedirs("output", exist_ok=True)
+matches = []
 
-def fetch_html(url, local_filename):
-    """Fetch and cache HTML to a local file"""
-    if not os.path.exists(local_filename):
-        print(f"Fetching {url} ...")
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        with open(local_filename, "w", encoding="utf-8") as f:
-            f.write(resp.text)
-    else:
-        print(f"Using cached {local_filename}")
-    return open(local_filename, encoding="utf-8").read()
+# ----------------------
+# Helper functions
+# ----------------------
+def search_streams(file_path, keyword):
+    """Search local HTML file for channels matching keyword"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            soup = BeautifulSoup(content, 'html.parser')
+            links = soup.find_all('a', href=True)
 
+            for link in links:
+                if keyword.lower() in link.text.lower():
+                    href = link['href']
+                    stream_number = href.split('-')[-1].replace('.php', '')
+                    stream_name = link.text.strip()
+                    match = (stream_number, stream_name)
+                    if match not in matches:
+                        matches.append(match)
 
-def scrape_daddylive_channels():
-    """Scrape channel list from daddylive 24/7 page"""
-    html = fetch_html(daddyLiveChannelsURL, daddyLiveChannelsFileName)
-    soup = BeautifulSoup(html, "html.parser")
+    except FileNotFoundError:
+        print(f"The file {file_path} does not exist.")
 
-    channels = []
-    for link in soup.select("a"):
-        href = link.get("href", "")
-        name = link.text.strip()
-        if "24-7-" in href.lower() or "channel" in href.lower():
-            channels.append({
-                "name": name,
-                "url": href
-            })
-    return channels
+    return matches
 
+def delete_file_if_exists(file_path):
+    """Delete a file if it exists"""
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+        print(f"File {file_path} deleted.")
 
-def scrape_tvlogos():
-    """Scrape available logo list from GitHub directory HTML"""
-    html = fetch_html(tvLogosURL, tvLogosFilename)
-    soup = BeautifulSoup(html, "html.parser")
+# ----------------------
+# Cleanup old files
+# ----------------------
+delete_file_if_exists('out.m3u8')
+delete_file_if_exists('tvg-ids.txt')
 
-    logos = []
-    for a in soup.select("a.js-navigation-open"):
-        href = a.get("href", "")
-        if href.endswith((".png", ".jpg", ".svg")):
-            logos.append({
-                "logo_name": a.text.strip(),
-                "logo_url": "https://raw.githubusercontent.com" + href.replace("/blob/", "/")
-            })
-    return logos
+# ----------------------
+# Fetch HTML pages
+# ----------------------
+fetcher.fetchHTML(daddyLiveChannelsFileName, daddyLiveChannelsURL)
+fetcher.fetchHTML(tvLogosFilename, tvLogosURL)
 
+# ----------------------
+# Define search terms
+# ----------------------
+search_terms = [
+    "nfl network"  # Add more channel keywords here if needed
+]
 
-def save_json(data, filename):
-    with open(os.path.join("output", filename), "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"Saved {filename}")
+# ----------------------
+# Extract payload from TV logos HTML
+# ----------------------
+payload = tvlogo.extract_payload_from_file(tvLogosFilename)
+print(json.dumps(payload, indent=2))
 
+# ----------------------
+# Search for channels locally
+# ----------------------
+for term in search_terms:
+    search_streams(daddyLiveChannelsFileName, term)
 
-def save_xml(data, filename, root_tag="channels", item_tag="channel"):
-    root = ET.Element(root_tag)
-    for item in data:
-        ch = ET.SubElement(root, item_tag)
-        for k, v in item.items():
-            el = ET.SubElement(ch, k)
-            el.text = v
-    tree = ET.ElementTree(root)
-    tree.write(os.path.join("output", filename), encoding="utf-8", xml_declaration=True)
-    print(f"Saved {filename}")
+# ----------------------
+# Generate M3U playlist
+# ----------------------
+for channel in matches:
+    # Ask user whether to include this channel
+    user_input = int(input(f"Do you want this channel? 0 = no, 1 = yes ({channel[1]}): "))
+    if user_input == 0:
+        continue
 
+    # Search for matching logos
+    word = channel[1].lower().replace('channel','').replace('tv','').replace('hd','').strip()
+    logo_matches = tvlogo.search_tree_items(word, payload)
 
-def save_yaml(data, filename):
-    with open(os.path.join("output", filename), "w", encoding="utf-8") as f:
-        yaml.dump(data, f, sort_keys=False, allow_unicode=True)
-    print(f"Saved {filename}")
+    # Let user pick a logo
+    tvicon = None
+    if logo_matches:
+        tvicon = logo_matches[0]  # Auto pick first match (optional: add interactive selection)
 
+    # Write M3U entry
+    initialPath = payload.get('initial_path', '')
+    with open("out.m3u8", 'a', encoding='utf-8') as file:
+        file.write(
+            f"#EXTINF:-1 tvg-name=\"{channel[1]}\" "
+            f"tvg-logo=\"https://raw.githubusercontent.com{initialPath}{tvicon['id']['path'] if tvicon else ''}\" "
+            f"group-title=\"USA (DADDY LIVE)\",{channel[1]}\n"
+        )
+        file.write(f"https://xyzdddd.mizhls.ru/lb/premium{channel[0]}/index.m3u8\n\n")
 
-if __name__ == "__main__":
-    # Scrape both sources
-    daddylive_channels = scrape_daddylive_channels()
-    tvlogos = scrape_tvlogos()
+    # Write the channel ID (stream number) to tvg-ids.txt
+    with open("tvg-ids.txt", 'a', encoding='utf-8') as file:
+        file.write(f"{channel[0]}\n")
 
-    # Save outputs
-    save_json(daddylive_channels, "daddylive_channels.json")
-    save_xml(daddylive_channels, "daddylive_channels.xml")
-    save_yaml(daddylive_channels, "daddylive_channels.yml")
-
-    save_json(tvlogos, "tvlogos.json")
-    save_xml(tvlogos, "tvlogos.xml")
-    save_yaml(tvlogos, "tvlogos.yml")
+print("Number of Streams:", len(matches))
