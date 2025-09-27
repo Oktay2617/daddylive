@@ -11,7 +11,7 @@ daddyLiveChannelsURL = 'https://thedaddy.to/24-7-channels.php'
 
 tvLogosFilename = 'tvlogos.html'
 # Raw HTML URL of TV logos page
-tvLogosURL = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/index.html'
+tvLogosURL = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states'
 
 matches = []
 
