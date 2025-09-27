@@ -13,17 +13,24 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Speed/coverage
       FAST: "1"
-      MAX_CHANNELS: "80"
-      CONCURRENCY: "12"
-      FOLDERS: "stream,player"
-      IFRAME_HOPS: "1"
-      DLHD_INSECURE: "1"
+      MAX_CHANNELS: "9999"        # process all channels
+      CONCURRENCY: "16"           # bump parallelism
+      FOLDERS: "stream,player"    # folders to try per channel
+      IFRAME_HOPS: "1"            # follow up to 1 iframe
+      DLHD_INSECURE: "1"          # tolerate dlhd.dad TLS chain quirks
       REQ_TIMEOUT: "10"
       RETRIES: "1"
+
+      # HLS policy: STRICT allow-list + validation
       VALIDATE_M3U8: "1"
-      M3U8_DENYLIST: "newkso.ru,newks.ru,new-ks.com,newkso.su"
-      # CHANNELS: "ESPN,NFL Network,FS1,ABC USA,NBA TV"
+      M3U8_ALLOWLIST: ""          # leave blank => DO NOT write any HLS; write player links instead
+      # Example to allow specific hosts (only if you KNOW they work):
+      # M3U8_ALLOWLIST: "mizhls.ru,edge.mytrustedcdn.com"
+
+      # Optionally limit by names (comma-separated, fuzzy)
+      # CHANNELS: "ABC USA,NBC,ESPN,FS1"
 
     steps:
       - name: Checkout repository
