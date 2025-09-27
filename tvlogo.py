@@ -1,50 +1,67 @@
+# tvlogo.py (hardened)
 import json
 from bs4 import BeautifulSoup
 
 def extract_payload_from_file(file_path):
     """
-    Extracts the payload object from the provided HTML file.
-
-    Parameters:
-    file_path (str): The path to the HTML file.
-
-    Returns:
-    dict: The payload object as a dictionary.
+    Extracts GitHub's embedded 'payload' JSON from the repository tree page,
+    and computes a raw.githubusercontent.com initial_path for logos.
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            html_content = file.read()
+        with open(file_path, 'r', encoding='utf-8') as f:
+            html = f.read()
 
-        # Parse the HTML content with BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(html, 'html.parser')
 
-        # Extract the initial path
-        react_app_tag = soup.find('react-app')
-        if react_app_tag:
-            initial_path = react_app_tag['initial-path']
-            if initial_path:
-                initial_path = initial_path.split('/tv-logo/tv-logos/tree/main/')[0] + '/tv-logo/tv-logos/tree/main/'
-                initial_path = initial_path.replace('/tree', '')
-
-        # Find the script tag with the payload
-        script_tag = soup.find('script', {'type': 'application/json', 'data-target': 'react-app.embeddedData'})
-
-        if script_tag:
-            # Extract the JSON content from the script tag
-            json_content = script_tag.string
-            # Load it into a Python dictionary
-            data = json.loads(json_content)
-            # Extract the payload object
-            payload = data.get('payload', {})
-
-            # Append the initial path to the payload object
-            if initial_path:
-                payload['initial_path'] = initial_path
-
-            return payload
-        else:
+        # GitHub embeds state here
+        script_tag = soup.find('script', {
+            'type': 'application/json',
+            'data-target': 'react-app.embeddedData'
+        })
+        if not script_tag or not script_tag.string:
             print('Script tag with the payload not found.')
             return {}
+
+        data = json.loads(script_tag.string)
+        payload = data.get('payload', {})
+
+        # Derive a raw path like:
+        # https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path...>
+        # The original code tried to reconstruct from <react-app initial-path>,
+        # but we can be explicit:
+        # Find repo info and the current path in the payload.
+        repo = payload.get('repo', {}) or payload.get('repository', {})
+        owner_login = (repo.get('ownerLogin')
+                       or repo.get('owner', {}).get('login')
+                       or 'tv-logo')
+        repo_name = repo.get('name') or 'tv-logos'
+
+        # GitHub's tree payload usually has 'refInfo' or similar:
+        branch = (
+            payload.get('refInfo', {}).get('name') or
+            payload.get('ref', 'main') or
+            'main'
+        )
+
+        # Current directory path from the UI:
+        # payload['path'] or payload['currentPath'] depending on shape
+        current_path = (
+            payload.get('path') or
+            payload.get('currentPath') or
+            'countries/united-states'
+        )
+
+        # Normalize current_path (strip leading slashes)
+        current_path = current_path.lstrip('/')
+
+        # Compose initial_path to raw content (no /tree)
+        initial_path = f"/{owner_login}/{repo_name}/{branch}/"
+
+        # Store both the raw prefix and the original payload for items
+        payload['initial_path'] = initial_path
+        payload['current_path'] = current_path
+
+        return payload
 
     except FileNotFoundError:
         print(f'The file {file_path} does not exist.')
@@ -55,33 +72,23 @@ def extract_payload_from_file(file_path):
 
 def search_tree_items(search_string, json_obj):
     """
-    Searches the JSON object's tree.items for matches of each part of the search string.
-
-    Parameters:
-    search_string (str): The string to search for.
-    json_obj (dict): The JSON object to search within.
-
-    Returns:
-    list: A list of matches found.
+    Searches payload.tree.items[] for filenames containing words in search_string.
+    Returns list of {'id': {'path': <path>}, 'source': ''}.
     """
     matches = []
     search_words = search_string.lower().split()
 
-    items = json_obj.get('tree', {}).get('items', [])
+    tree = json_obj.get('tree', {})
+    items = tree.get('items', [])
 
     for item in items:
-        imgName = item['name'].lower()
-        for word in search_words:
-            if word in imgName:
-                if imgName not in matches:
-                    matches.append({'id':item, 'source':''})
+        name = (item.get('name') or '').lower()
+        if not name:
+            continue
+        if any(w in name for w in search_words):
+            # Prefer .png/.svg images; attach a relative path we can join to initial_path
+            # The GitHub payload item often carries a 'path' field; fall back to name
+            path = item.get('path') or json_obj.get('current_path', '') + '/' + item.get('name', '')
+            matches.append({'id': {'path': path}, 'source': ''})
 
     return matches
-
-# Example usage
-if __name__ == "__main__":
-    file_path = 'example.html'  # Replace with your actual HTML file path
-    payload = extract_payload_from_file(file_path)
-    search_string = 'custom directory'
-    matches = search_tree_items(search_string, payload)
-    print(json.dumps(matches, indent=2))
