@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# scraper.py — single-file fast version (concurrent HLS extraction + logo overrides)
+# scraper.py — fast, parallel HLS resolver with template-var substitution for ${CHANNEL_KEY}
 # Requires: requests, beautifulsoup4
 
 import os, re, json, difflib, time, base64
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 import concurrent.futures as cf
 
 import requests
@@ -23,8 +23,8 @@ REQ_TIMEOUT     = float(os.getenv("REQ_TIMEOUT", "10" if FAST_MODE else "20"))
 RETRIES         = int(os.getenv("RETRIES", "1" if FAST_MODE else "3"))
 IFRAME_HOPS     = int(os.getenv("IFRAME_HOPS", "1" if FAST_MODE else "2"))
 
-CHANNELS_ENV = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
-OUT_M3U      = "out.m3u8"
+CHANNELS_ENV    = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
+OUT_M3U         = "out.m3u8"
 
 CHANNEL_ENDPOINTS = [
     "https://dlhd.dad/daddy.json",
@@ -56,13 +56,10 @@ def http_get_text(url: str, *, referer: Optional[str] = None, verify: Optional[b
     sess = _sess()
     headers = dict(DEFAULT_HEADERS)
     if referer: headers["Referer"] = referer
-
-    # fast path: dlhd.dad often fails TLS — skip verify immediately if DLHD_INSECURE
     if verify is None:
         verify = not (DLHD_INSECURE and "dlhd.dad" in url)
-
     last = None
-    for i in range(RETRIES):
+    for _ in range(RETRIES):
         try:
             r = sess.get(url, headers=headers, timeout=REQ_TIMEOUT, verify=verify, allow_redirects=True)
             if 200 <= r.status_code < 300:
@@ -70,7 +67,6 @@ def http_get_text(url: str, *, referer: Optional[str] = None, verify: Optional[b
             last = f"HTTP {r.status_code}"
         except (SSLError, RequestException) as e:
             last = str(e)
-        # no exponential backoff to keep it snappy, just a tiny sleep
         time.sleep(0.2)
     raise RuntimeError(f"GET failed: {url} ({last})")
 
@@ -85,13 +81,11 @@ def extract_payload_from_github_tree_html(html: str) -> dict:
         return {}
     data = json.loads(script_tag.string)
     payload = data.get('payload', {}) or {}
-
     repo = payload.get('repo', {}) or payload.get('repository', {})
     owner_login = (repo.get('ownerLogin') or repo.get('owner', {}).get('login') or 'tv-logo')
     repo_name   = repo.get('name') or 'tv-logos'
     branch      = payload.get('refInfo', {}).get('name') or payload.get('ref', 'main') or 'main'
     current_path= (payload.get('path') or payload.get('currentPath') or 'countries/united-states').lstrip('/')
-
     payload['initial_path'] = f"/{owner_login}/{repo_name}/{branch}/"
     payload['current_path'] = current_path
     return payload
@@ -136,8 +130,6 @@ def best_fuzzy(needle: str, candidates: List[str]) -> Optional[str]:
         inter = len(nt & set(tokens(c)))
         if inter > best_score:
             best_i, best_score = i, inter
-    if best_i is not None and best_score >= 1:
-        return candidates[best_i]
     import difflib as dl
     m = dl.get_close_matches(n, cand_norm, n=1, cutoff=0.72)
     if m:
@@ -163,12 +155,14 @@ def pick_logo_path(channel_name: str, payload: dict) -> str:
     matches.sort(key=score, reverse=True)
     return (matches[0].get('id') or {}).get('path','')
 
-# ---------- HLS extraction (fast) ----------
+# ---------- HLS extraction with template substitution ----------
 M3U8_PATTERNS = [
     re.compile(r'https?://[^\s\'"]+\.m3u8[^\s\'"]*', re.I),
     re.compile(r'["\'](https?://[^"\']+\.m3u8[^"\']*)["\']', re.I),
 ]
 B64_PAT = re.compile(r'(?:atob\(|btoa\()["\']([A-Za-z0-9+/=]{12,})["\']\)?', re.I)
+TEMPLATE_VAR_PAT = re.compile(r'\$\{([A-Za-z0-9_]+)\}')  # ${CHANNEL_KEY}
+ASSIGN_PAT = re.compile(r'(?:var|let|const)\s+([A-Za-z0-9_]+)\s*=\s*([\'"])(.*?)\2\s*;')  # const VAR="value";
 
 def decode_possible_b64(s: str) -> List[str]:
     found = []
@@ -182,17 +176,56 @@ def decode_possible_b64(s: str) -> List[str]:
             pass
     return found
 
-def parse_m3u8_from_html(html: str) -> Optional[str]:
+def extract_template_vars(html: str) -> Dict[str,str]:
+    """Pull simple JS assignments like const CHANNEL_KEY='abc123' from inline scripts."""
+    vars: Dict[str,str] = {}
+    for name, _, value in ASSIGN_PAT.findall(html or ""):
+        # keep only uppercase-ish tokens or channel-related keys to avoid noise
+        if name.isupper() or "CHANNEL" in name.upper() or "KEY" in name.upper() or "TOKEN" in name.upper():
+            vars[name] = value
+    return vars
+
+def normalize_m3u8_url(url: str, html: str, ctx: Dict[str,str]) -> Optional[str]:
+    """Replace ${VAR} using ctx (or values found in html), strip stray backticks, and validate."""
+    if not url: return None
+    url = url.strip().strip('`').strip('"').strip("'")
+    # if contains templates, try to replace them
+    missing = False
+    def repl(m):
+        nonlocal missing
+        var = m.group(1)
+        if var in ctx:
+            return ctx[var]
+        # try to discover in html if not provided
+        assign = re.search(rf'(?:var|let|const)\s+{re.escape(var)}\s*=\s*([\'"])(.*?)\1\s*;', html or "", re.I)
+        if assign:
+            return assign.group(2)
+        missing = True
+        return m.group(0)
+    url2 = TEMPLATE_VAR_PAT.sub(repl, url)
+    if missing:
+        return None
+    # basic sanity
+    if ".m3u8" not in url2.lower():
+        return None
+    if "${" in url2:
+        return None
+    return url2
+
+def parse_m3u8_candidates(html: str) -> List[str]:
+    cands = []
     for pat in M3U8_PATTERNS:
-        hit = pat.search(html or "")
-        if hit:
-            return hit.group(0).strip('"\'')
+        cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(html or "")]
     for dec in decode_possible_b64(html or ""):
         for pat in M3U8_PATTERNS:
-            hit = pat.search(dec)
-            if hit:
-                return hit.group(0).strip('"\'')
-    return None
+            cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(dec)]
+    # de-dup preserve order
+    seen, uniq = set(), []
+    for u in cands:
+        u = u.strip().strip('`').strip('"').strip("'")
+        if u not in seen:
+            seen.add(u); uniq.append(u)
+    return uniq
 
 def find_iframe_srcs(html: str) -> List[str]:
     srcs = []
@@ -200,7 +233,6 @@ def find_iframe_srcs(html: str) -> List[str]:
     for tag in soup.find_all("iframe"):
         s = tag.get("src") or tag.get("data-src")
         if s: srcs.append(s)
-    # de-dup
     seen, uniq = set(), []
     for u in srcs:
         if u.startswith("//"): u = "https:" + u
@@ -209,22 +241,30 @@ def find_iframe_srcs(html: str) -> List[str]:
     return uniq[:2]  # cap to 2 iframes per page (speed)
 
 def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
-    # Try configured folders; minimal retries/timeouts
+    ctx: Dict[str,str] = {}
     for folder in PLAYER_FOLDERS:
         page = f"https://dlhd.dad/{folder}/stream-{ch_id}.php"
         try:
             html = http_get_text(page, referer="https://dlhd.dad/")
-            m3u8 = parse_m3u8_from_html(html)
-            if m3u8:
-                return m3u8
-            # one hop into iframes (capped by IFRAME_HOPS)
+            ctx.update(extract_template_vars(html))
+
+            # scan this page
+            for cand in parse_m3u8_candidates(html):
+                real = normalize_m3u8_url(cand, html, ctx)
+                if real:
+                    return real
+
+            # try iframes (one hop by default)
             if IFRAME_HOPS > 0:
                 for i, iframe_url in enumerate(find_iframe_srcs(html)):
                     if i >= IFRAME_HOPS: break
                     try:
                         iframe_html = http_get_text(iframe_url, referer=page)
-                        m3u8 = parse_m3u8_from_html(iframe_html)
-                        if m3u8: return m3u8
+                        ctx.update(extract_template_vars(iframe_html))
+                        for cand in parse_m3u8_candidates(iframe_html):
+                            real = normalize_m3u8_url(cand, iframe_html, ctx)
+                            if real:
+                                return real
                     except Exception:
                         pass
         except Exception:
@@ -250,7 +290,7 @@ def fetch_first_ok_text(urls: List[str]) -> Tuple[str, str]:
 def main():
     nuke(OUT_M3U)
 
-    # Channels JSON (first working endpoint)
+    # Channels JSON
     used_url, channels_text = fetch_first_ok_text(CHANNEL_ENDPOINTS)
     try:
         channels_data = json.loads(channels_text)
@@ -259,7 +299,7 @@ def main():
     if not isinstance(channels_data, list):
         raise SystemExit("Channels JSON is not a list.")
 
-    # Logos payload (GitHub)
+    # Logos payload
     _, logos_html = fetch_first_ok_text(TV_LOGOS_ENDPOINTS)
     payload = extract_payload_from_github_tree_html(logos_html)
     initial_raw_prefix = payload.get('initial_path', '')
@@ -272,6 +312,7 @@ def main():
                 s = line.strip()
                 if s and not s.startswith("#"):
                     targets.add(s)
+
     all_names = [c.get("channel_name","") for c in channels_data if "channel_name" in c and "channel_id" in c]
     name_to_id = {c["channel_name"]: c["channel_id"] for c in channels_data if "channel_name" in c and "channel_id" in c}
 
@@ -283,7 +324,6 @@ def main():
                 if got and got in name_to_id: picked.append(got)
         else:
             picked = all_names[:]
-        # cap to MAX_CHANNELS
         return [(nm, name_to_id[nm]) for nm in picked[:MAX_CHANNELS]]
 
     todo = iter_targets()
