@@ -67,7 +67,6 @@ search_terms = [
 # Extract payload from TV logos HTML
 # ----------------------
 payload = tvlogo.extract_payload_from_file(tvLogosFilename)
-print(json.dumps(payload, indent=2))
 
 # ----------------------
 # Search for channels locally
@@ -76,22 +75,15 @@ for term in search_terms:
     search_streams(daddyLiveChannelsFileName, term)
 
 # ----------------------
-# Generate M3U playlist
+# Generate M3U playlist (auto-select first match/logo)
 # ----------------------
 for channel in matches:
-    # Ask user whether to include this channel
-    user_input = int(input(f"Do you want this channel? 0 = no, 1 = yes ({channel[1]}): "))
-    if user_input == 0:
-        continue
+    # Auto-include all found channels
+    word = channel[1].lower().replace('channel','').replace('tv','').replace('hd','').strip()
 
     # Search for matching logos
-    word = channel[1].lower().replace('channel','').replace('tv','').replace('hd','').strip()
     logo_matches = tvlogo.search_tree_items(word, payload)
-
-    # Let user pick a logo
-    tvicon = None
-    if logo_matches:
-        tvicon = logo_matches[0]  # Auto pick first match (optional: add interactive selection)
+    tvicon = logo_matches[0] if logo_matches else None  # pick first logo match if exists
 
     # Write M3U entry
     initialPath = payload.get('initial_path', '')
