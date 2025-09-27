@@ -1,22 +1,40 @@
 #!/usr/bin/env python3
-# scraper.py — single-file (fetcher + tvlogo + scraper) with HLS extraction
+# scraper.py — single-file fast version (concurrent HLS extraction + logo overrides)
 # Requires: requests, beautifulsoup4
 
-import os
-import re
-import json
-import difflib
-import time
-import base64
+import os, re, json, difflib, time, base64
 from typing import Optional, Tuple, List
+import concurrent.futures as cf
 
 import requests
-from requests.exceptions import SSLError
+from requests.exceptions import SSLError, RequestException
 from bs4 import BeautifulSoup
 
-# ============================================================
-# =============== Fetcher (hardened HTTP client) =============
-# ============================================================
+# ==============================
+# Speed-focused defaults (env)
+# ==============================
+FAST_MODE       = os.getenv("FAST", "1") == "1"
+MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "100" if FAST_MODE else "999999"))
+CONCURRENCY     = int(os.getenv("CONCURRENCY", "12" if FAST_MODE else "6"))
+FOLDERS_ENV     = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
+PLAYER_FOLDERS  = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
+DLHD_INSECURE   = os.getenv("DLHD_INSECURE", "1") == "1"   # skip verify for dlhd.dad by default
+REQ_TIMEOUT     = float(os.getenv("REQ_TIMEOUT", "10" if FAST_MODE else "20"))
+RETRIES         = int(os.getenv("RETRIES", "1" if FAST_MODE else "3"))
+IFRAME_HOPS     = int(os.getenv("IFRAME_HOPS", "1" if FAST_MODE else "2"))
+
+CHANNELS_ENV = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
+OUT_M3U      = "out.m3u8"
+
+CHANNEL_ENDPOINTS = [
+    "https://dlhd.dad/daddy.json",
+    "https://daddylivestream.com/daddy.json",
+    "http://dlhd.dad/daddy.json",
+]
+
+TV_LOGOS_ENDPOINTS = [
+    "https://github.com/tv-logo/tv-logos/tree/main/countries/united-states",
+]
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -29,154 +47,65 @@ DEFAULT_HEADERS = {
     "Connection": "keep-alive",
 }
 
-def _session() -> requests.Session:
+def _sess() -> requests.Session:
     s = requests.Session()
     s.headers.update(DEFAULT_HEADERS)
     return s
 
-def _looks_blocked_or_tiny(text: str) -> bool:
-    if not text or len(text) < 600:  # allow small player pages; will still parse
-        return False
-    needles = [
-        "just a moment", "rate limit", "access denied", "captcha",
-        "request blocked", "attention required!", "you have been blocked"
-    ]
-    low = text.lower()
-    return any(n in low for n in needles)
-
-def http_get_text(url: str, *, tries: int = 4, sleep: float = 1.0,
-                  allow_4xx: bool = True, verify: bool = True,
-                  referer: Optional[str] = None) -> str:
-    sess = _session()
-    last_exc: Optional[Exception] = None
+def http_get_text(url: str, *, referer: Optional[str] = None, verify: Optional[bool] = None) -> str:
+    sess = _sess()
     headers = dict(DEFAULT_HEADERS)
-    if referer:
-        headers["Referer"] = referer
-    for i in range(tries):
+    if referer: headers["Referer"] = referer
+
+    # fast path: dlhd.dad often fails TLS — skip verify immediately if DLHD_INSECURE
+    if verify is None:
+        verify = not (DLHD_INSECURE and "dlhd.dad" in url)
+
+    last = None
+    for i in range(RETRIES):
         try:
-            resp = sess.get(url, timeout=30, verify=verify, headers=headers, allow_redirects=True)
-            if 200 <= resp.status_code < 300 or (allow_4xx and 400 <= resp.status_code < 500):
-                return resp.text
-            print(f"[fetcher] GET {url} -> {resp.status_code}; retrying...")
-        except SSLError as e:
-            last_exc = e
-            print(f"[fetcher] GET {url} SSL error: {e}; retrying...")
-        except Exception as e:
-            last_exc = e
-            print(f"[fetcher] GET {url} failed: {e}; retrying...")
-        time.sleep(sleep * (2 ** i))
-    if last_exc:
-        raise last_exc
-    raise RuntimeError(f"Failed to GET {url}")
+            r = sess.get(url, headers=headers, timeout=REQ_TIMEOUT, verify=verify, allow_redirects=True)
+            if 200 <= r.status_code < 300:
+                return r.text
+            last = f"HTTP {r.status_code}"
+        except (SSLError, RequestException) as e:
+            last = str(e)
+        # no exponential backoff to keep it snappy, just a tiny sleep
+        time.sleep(0.2)
+    raise RuntimeError(f"GET failed: {url} ({last})")
 
-def fetch_first_ok_text(urls: List[str], *, referer: Optional[str] = None) -> Tuple[str, str]:
-    """
-    Try a list of URLs; return (used_url, response_text).
-    For dlhd.dad, if TLS fails, retry once with verify=False (loudly).
-    """
-    last_err = None
-    for u in urls:
-        print(f"[scraper] Trying {u}")
-        try:
-            try:
-                text = http_get_text(u, tries=4, sleep=1.0, allow_4xx=True, verify=True, referer=referer)
-            except SSLError as e:
-                if "dlhd.dad" in u or os.getenv("DLHD_INSECURE") == "1":
-                    print(f"[fetcher] TLS verify failed for {u}. Retrying ONCE with verify=False (insecure).")
-                    text = http_get_text(u, tries=1, sleep=0.5, allow_4xx=True, verify=False, referer=referer)
-                else:
-                    raise
-            if _looks_blocked_or_tiny(text):
-                print(f"[scraper] Page looks potentially blocked (but will try to parse anyway): {u}")
-            print(f"[scraper] OK -> {u}")
-            return u, text
-        except Exception as e:
-            last_err = e
-            print(f"[scraper] Failed {u}: {e}")
-    raise SystemExit(f"All endpoints failed. Last error: {last_err}")
-
-# ============================================================
-# ================= TV Logos (GitHub tree) ===================
-# ============================================================
-
+# ---------- GitHub tv-logos parsing ----------
 def extract_payload_from_github_tree_html(html: str) -> dict:
-    """
-    Extract GitHub embedded payload JSON and build a raw.githubusercontent.com prefix.
-    """
     soup = BeautifulSoup(html, 'html.parser')
-
     script_tag = soup.find('script', {
         'type': 'application/json',
         'data-target': 'react-app.embeddedData'
     })
     if not script_tag or not script_tag.string:
-        print('Script tag with the payload not found.')
         return {}
-
     data = json.loads(script_tag.string)
-    payload = data.get('payload', {})
+    payload = data.get('payload', {}) or {}
 
     repo = payload.get('repo', {}) or payload.get('repository', {})
-    owner_login = (repo.get('ownerLogin')
-                   or repo.get('owner', {}).get('login')
-                   or 'tv-logo')
-    repo_name = repo.get('name') or 'tv-logos'
-    branch = (
-        payload.get('refInfo', {}).get('name')
-        or payload.get('ref', 'main')
-        or 'main'
-    )
-    current_path = (
-        payload.get('path')
-        or payload.get('currentPath')
-        or 'countries/united-states'
-    ).lstrip('/')
+    owner_login = (repo.get('ownerLogin') or repo.get('owner', {}).get('login') or 'tv-logo')
+    repo_name   = repo.get('name') or 'tv-logos'
+    branch      = payload.get('refInfo', {}).get('name') or payload.get('ref', 'main') or 'main'
+    current_path= (payload.get('path') or payload.get('currentPath') or 'countries/united-states').lstrip('/')
 
-    initial_path = f"/{owner_login}/{repo_name}/{branch}/"
-    payload['initial_path'] = initial_path
+    payload['initial_path'] = f"/{owner_login}/{repo_name}/{branch}/"
     payload['current_path'] = current_path
     return payload
 
 def search_tree_items(search_string: str, json_obj: dict) -> List[dict]:
-    """
-    Searches payload.tree.items[] for filenames containing parts of search_string.
-    Returns list of {'id': {'path': <path>}, 'source': ''}.
-    """
-    matches = []
-    search_words = (search_string or "").lower().split()
-    tree = json_obj.get('tree', {})
-    items = tree.get('items', [])
-    for item in items:
+    matches, search_words = [], (search_string or "").lower().split()
+    for item in json_obj.get('tree', {}).get('items', []):
         name = (item.get('name') or '').lower()
-        if not name:
-            continue
-        if any(w in name for w in search_words):
+        if name and any(w in name for w in search_words):
             path = item.get('path') or json_obj.get('current_path', '') + '/' + item.get('name', '')
             matches.append({'id': {'path': path}, 'source': ''})
     return matches
 
-# ============================================================
-# ======================= Scraper main =======================
-# ============================================================
-
-CI_MODE = os.getenv("CI") == "1" or os.getenv("AUTO") == "1"
-CHANNELS_ENV = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
-OUT_M3U = "out.m3u8"
-
-CHANNEL_ENDPOINTS = [
-    "https://dlhd.dad/daddy.json",
-    "https://daddylivestream.com/daddy.json",
-    "http://dlhd.dad/daddy.json",
-]
-
-TV_LOGOS_ENDPOINTS = [
-    "https://github.com/tv-logo/tv-logos/tree/main/countries/united-states",
-]
-
-# folders where stream-<id>.php can live
-PLAYER_FOLDERS = ["stream", "cast", "watch", "plus", "casting", "player"]
-
-# logo overrides (exact names from API)
+# ---------- Logo helpers ----------
 LOGO_OVERRIDES = {
     "NFL Network": "countries/united-states/nfl-network.png",
     "ESPN": "countries/united-states/espn.png",
@@ -190,10 +119,6 @@ LOGO_OVERRIDES = {
     "NBA TV": "countries/united-states/nba-tv.png",
 }
 
-def nuke(path: str):
-    if os.path.isfile(path):
-        os.remove(path)
-
 def normalize_name(s: str) -> str:
     return (s or "").lower().replace("&", "and").replace("+", "plus").strip()
 
@@ -204,28 +129,25 @@ def best_fuzzy(needle: str, candidates: List[str]) -> Optional[str]:
     n = normalize_name(needle)
     cand_norm = [normalize_name(c) for c in candidates]
     for i, c in enumerate(cand_norm):
-        if c == n:
-            return candidates[i]
+        if c == n: return candidates[i]
     nt = set(tokens(n))
     best_i, best_score = None, 0
     for i, c in enumerate(cand_norm):
-        ct = set(tokens(c))
-        inter = len(nt & ct)
+        inter = len(nt & set(tokens(c)))
         if inter > best_score:
             best_i, best_score = i, inter
     if best_i is not None and best_score >= 1:
         return candidates[best_i]
-    m = difflib.get_close_matches(n, cand_norm, n=1, cutoff=0.72)
+    import difflib as dl
+    m = dl.get_close_matches(n, cand_norm, n=1, cutoff=0.72)
     if m:
         j = cand_norm.index(m[0])
         return candidates[j]
     return None
 
 def pick_logo_path(channel_name: str, payload: dict) -> str:
-    override = LOGO_OVERRIDES.get(channel_name)
-    if override:
-        return override
-
+    if channel_name in LOGO_OVERRIDES:
+        return LOGO_OVERRIDES[channel_name]
     word = normalize_name(channel_name)
     matches = search_tree_items(word, payload)
     if not matches:
@@ -235,34 +157,24 @@ def pick_logo_path(channel_name: str, payload: dict) -> str:
     if not matches:
         return ""
     def score(m):
-        path = (m.get('id') or {}).get('path', '')
-        base = os.path.basename(path).lower()
+        base = os.path.basename((m.get('id') or {}).get('path','')).lower()
         base = re.sub(r'\.(png|svg|jpg|jpeg)$', '', base)
-        base_tokens = set(tokens(base))
-        name_tokens = set(tokens(channel_name))
-        return (
-            100 if base_tokens == name_tokens else 0,
-            len(base_tokens & name_tokens),
-            -abs(len(base) - len(channel_name)),
-        )
+        return (len(set(tokens(base)) & set(tokens(channel_name))), -abs(len(base) - len(channel_name)))
     matches.sort(key=score, reverse=True)
-    return (matches[0].get('id') or {}).get('path', '')
+    return (matches[0].get('id') or {}).get('path','')
 
-# ---------- HLS Extraction ----------
-
+# ---------- HLS extraction (fast) ----------
 M3U8_PATTERNS = [
     re.compile(r'https?://[^\s\'"]+\.m3u8[^\s\'"]*', re.I),
     re.compile(r'["\'](https?://[^"\']+\.m3u8[^"\']*)["\']', re.I),
 ]
-
 B64_PAT = re.compile(r'(?:atob\(|btoa\()["\']([A-Za-z0-9+/=]{12,})["\']\)?', re.I)
-SRC_PAT = re.compile(r'(?:src|data-src)\s*=\s*["\'](https?://[^"\']+)["\']', re.I)
 
 def decode_possible_b64(s: str) -> List[str]:
     found = []
     for m in B64_PAT.findall(s or ""):
         try:
-            dec = base64.b64decode(m + "===")  # tolerate missing padding
+            dec = base64.b64decode(m + "===")
             dec = dec.decode("utf-8", errors="ignore")
             if ".m3u8" in dec:
                 found.append(dec)
@@ -271,12 +183,10 @@ def decode_possible_b64(s: str) -> List[str]:
     return found
 
 def parse_m3u8_from_html(html: str) -> Optional[str]:
-    # 1) direct .m3u8 in page
     for pat in M3U8_PATTERNS:
         hit = pat.search(html or "")
         if hit:
             return hit.group(0).strip('"\'')
-    # 2) base64-encoded URLs commonly used in scripts
     for dec in decode_possible_b64(html or ""):
         for pat in M3U8_PATTERNS:
             hit = pat.search(dec)
@@ -289,59 +199,59 @@ def find_iframe_srcs(html: str) -> List[str]:
     soup = BeautifulSoup(html or "", "html.parser")
     for tag in soup.find_all("iframe"):
         s = tag.get("src") or tag.get("data-src")
-        if s:
-            srcs.append(s)
-    # also check generic src/data-src in raw HTML
-    srcs += SRC_PAT.findall(html or "")
-    # de-dup while preserving order
-    seen = set()
-    uniq = []
+        if s: srcs.append(s)
+    # de-dup
+    seen, uniq = set(), []
     for u in srcs:
+        if u.startswith("//"): u = "https:" + u
         if u not in seen:
-            seen.add(u)
-            uniq.append(u)
-    return uniq
+            seen.add(u); uniq.append(u)
+    return uniq[:2]  # cap to 2 iframes per page (speed)
 
 def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
-    """
-    Try each folder; parse page, follow iframes (one hop), look for .m3u8.
-    Returns HLS URL or None.
-    """
-    # Try folders in order; some may be blocked, others work
+    # Try configured folders; minimal retries/timeouts
     for folder in PLAYER_FOLDERS:
         page = f"https://dlhd.dad/{folder}/stream-{ch_id}.php"
         try:
-            # first load the player page
-            _, html = fetch_first_ok_text([page], referer="https://dlhd.dad/")
-            # look for direct .m3u8
+            html = http_get_text(page, referer="https://dlhd.dad/")
             m3u8 = parse_m3u8_from_html(html)
             if m3u8:
                 return m3u8
-
-            # follow first-level iframes and scan them too
-            for iframe_url in find_iframe_srcs(html):
-                # normalize protocol-less // URLs
-                if iframe_url.startswith("//"):
-                    iframe_url = "https:" + iframe_url
-                try:
-                    _, iframe_html = fetch_first_ok_text([iframe_url], referer=page)
-                    m3u8 = parse_m3u8_from_html(iframe_html)
-                    if m3u8:
-                        return m3u8
-                except Exception as e:
-                    print(f"[hls] iframe fetch failed {iframe_url}: {e}")
-        except Exception as e:
-            print(f"[hls] page fetch failed {page}: {e}")
+            # one hop into iframes (capped by IFRAME_HOPS)
+            if IFRAME_HOPS > 0:
+                for i, iframe_url in enumerate(find_iframe_srcs(html)):
+                    if i >= IFRAME_HOPS: break
+                    try:
+                        iframe_html = http_get_text(iframe_url, referer=page)
+                        m3u8 = parse_m3u8_from_html(iframe_html)
+                        if m3u8: return m3u8
+                    except Exception:
+                        pass
+        except Exception:
+            pass
     return None
 
-# ---------- Main ----------
+# ---------- Utility ----------
+def nuke(path: str):
+    if os.path.isfile(path):
+        os.remove(path)
 
+def fetch_first_ok_text(urls: List[str]) -> Tuple[str, str]:
+    last_err = None
+    for u in urls:
+        try:
+            txt = http_get_text(u)
+            return u, txt
+        except Exception as e:
+            last_err = e
+    raise SystemExit(f"All endpoints failed. Last error: {last_err}")
+
+# ---------- Main ----------
 def main():
     nuke(OUT_M3U)
 
-    # Channels JSON
+    # Channels JSON (first working endpoint)
     used_url, channels_text = fetch_first_ok_text(CHANNEL_ENDPOINTS)
-    print(f"[scraper] Using channels source: {used_url}")
     try:
         channels_data = json.loads(channels_text)
     except json.JSONDecodeError as e:
@@ -349,7 +259,7 @@ def main():
     if not isinstance(channels_data, list):
         raise SystemExit("Channels JSON is not a list.")
 
-    # Logos payload
+    # Logos payload (GitHub)
     _, logos_html = fetch_first_ok_text(TV_LOGOS_ENDPOINTS)
     payload = extract_payload_from_github_tree_html(logos_html)
     initial_raw_prefix = payload.get('initial_path', '')
@@ -362,50 +272,53 @@ def main():
                 s = line.strip()
                 if s and not s.startswith("#"):
                     targets.add(s)
-    process_all = (len(targets) == 0)
-
     all_names = [c.get("channel_name","") for c in channels_data if "channel_name" in c and "channel_id" in c]
     name_to_id = {c["channel_name"]: c["channel_id"] for c in channels_data if "channel_name" in c and "channel_id" in c}
 
-    def iter_target_channels():
-        if process_all:
-            for nm in all_names:
-                yield nm, name_to_id[nm]
-        else:
+    def iter_targets():
+        picked = []
+        if targets:
             for want in targets:
                 got = best_fuzzy(want, all_names)
-                if got and got in name_to_id:
-                    yield got, name_to_id[got]
-                else:
-                    print(f"[warn] Could not match requested channel: {want}")
+                if got and got in name_to_id: picked.append(got)
+        else:
+            picked = all_names[:]
+        # cap to MAX_CHANNELS
+        return [(nm, name_to_id[nm]) for nm in picked[:MAX_CHANNELS]]
+
+    todo = iter_targets()
+
+    # Resolve HLS in parallel
+    results = []
+    with cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as exe:
+        futs = {exe.submit(resolve_hls_for_channel_id, ch_id): (name, ch_id) for name, ch_id in todo}
+        for fut in cf.as_completed(futs):
+            name, ch_id = futs[fut]
+            hls = None
+            try:
+                hls = fut.result()
+            except Exception:
+                pass
+            results.append((name, ch_id, hls))
 
     # Write M3U
-    added = 0
-    with open(OUT_M3U, "a", encoding="utf-8") as m3u:
-        for display_name, ch_id in iter_target_channels():
-            # try to resolve HLS
-            hls = resolve_hls_for_channel_id(ch_id)
-            if hls:
-                final_url = hls
-            else:
-                # fallback: player page
-                final_url = f"https://dlhd.dad/stream/stream-{ch_id}.php"
-
+    written = 0
+    with open(OUT_M3U, "w", encoding="utf-8") as m3u:
+        for display_name, ch_id, hls in results:
+            final_url = hls or f"https://dlhd.dad/stream/stream-{ch_id}.php"
             logo_rel = pick_logo_path(display_name, payload)
             logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_rel}" if logo_rel else ""
-
             m3u.write(
                 f"#EXTINF:-1 tvg-name=\"{display_name}\" "
                 f"tvg-logo=\"{logo_url}\" group-title=\"USA (DADDY LIVE)\", {display_name}\n"
             )
             m3u.write(final_url + "\n\n")
-            added += 1
+            written += 1
 
-    print(f"Total channels in API: {len(all_names)}")
-    print(f"Channels added: {added}")
-
-    if added == 0:
-        raise SystemExit("No channels added. Check CHANNELS/channels.txt or endpoint availability.")
+    print(f"Channels processed (capped): {len(results)} / Max={MAX_CHANNELS}")
+    print(f"Playlist entries written: {written}")
+    if written == 0:
+        raise SystemExit("No entries written — endpoints blocked or names didn’t match.")
 
 if __name__ == "__main__":
     main()
