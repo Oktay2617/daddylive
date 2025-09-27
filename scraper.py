@@ -10,8 +10,7 @@ daddyLiveChannelsFileName = '247channels.html'
 daddyLiveChannelsURL = 'https://thedaddy.to/24-7-channels.php'
 
 tvLogosFilename = 'tvlogos.html'
-# Raw HTML URL of TV logos page
-tvLogosURL = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states'
+tvLogosAPI = 'https://api.github.com/repos/tv-logo/tv-logos/contents/countries/united-states'
 
 matches = []
 
@@ -46,15 +45,19 @@ def delete_file_if_exists(file_path):
         os.remove(file_path)
         print(f"File {file_path} deleted.")
 
-def fetch_tvlogos_html(url, filename):
-    """Fetch TV logos HTML from GitHub"""
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(response.text)
-        print(f"{filename} fetched from {url}")
-    else:
-        raise Exception(f"Failed to fetch {url}, status code {response.status_code}")
+def fetch_github_logos(api_url):
+    """Fetch all logo URLs from GitHub API"""
+    response = requests.get(api_url)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch logos from GitHub API, status {response.status_code}")
+    
+    data = response.json()
+    logos = {}
+    for item in data:
+        if item['name'].lower().endswith('.png'):
+            channel_name = item['name'].rsplit('.', 1)[0].lower()
+            logos[channel_name] = item['download_url']
+    return logos
 
 # ----------------------
 # Cleanup old files
@@ -66,19 +69,18 @@ delete_file_if_exists('tvg-ids.txt')
 # Fetch HTML pages
 # ----------------------
 fetcher.fetchHTML(daddyLiveChannelsFileName, daddyLiveChannelsURL)
-fetch_tvlogos_html(tvLogosURL, tvLogosFilename)  # Fetch latest logos HTML
+
+# ----------------------
+# Fetch TV logos dynamically via GitHub API
+# ----------------------
+tv_logos = fetch_github_logos(tvLogosAPI)
 
 # ----------------------
 # Define search terms
 # ----------------------
 search_terms = [
-    "nfl network"  # Add more channel keywords here if needed
+    "nfl network"  # Add more channel keywords here
 ]
-
-# ----------------------
-# Extract payload from TV logos HTML
-# ----------------------
-payload = tvlogo.extract_payload_from_file(tvLogosFilename)
 
 # ----------------------
 # Search for channels locally
@@ -87,27 +89,29 @@ for term in search_terms:
     search_streams(daddyLiveChannelsFileName, term)
 
 # ----------------------
-# Generate M3U playlist (auto-select first match/logo)
+# Generate M3U playlist
 # ----------------------
 for channel in matches:
     # Auto-include all found channels
-    word = channel[1].lower().replace('channel','').replace('tv','').replace('hd','').strip()
-
-    # Search for matching logos
-    logo_matches = tvlogo.search_tree_items(word, payload)
-    tvicon = logo_matches[0] if logo_matches else None  # pick first logo match if exists
+    key = channel[1].lower().replace('channel','').replace('tv','').replace('hd','').strip()
+    
+    # Match a logo if exists
+    tvicon_url = ''
+    for logo_name, logo_url in tv_logos.items():
+        if logo_name in key:
+            tvicon_url = logo_url
+            break
 
     # Write M3U entry
-    initialPath = payload.get('initial_path', '')
     with open("out.m3u8", 'a', encoding='utf-8') as file:
         file.write(
             f"#EXTINF:-1 tvg-name=\"{channel[1]}\" "
-            f"tvg-logo=\"https://raw.githubusercontent.com{initialPath}{tvicon['id']['path'] if tvicon else ''}\" "
+            f"tvg-logo=\"{tvicon_url}\" "
             f"group-title=\"USA (DADDY LIVE)\",{channel[1]}\n"
         )
         file.write(f"https://xyzdddd.mizhls.ru/lb/premium{channel[0]}/index.m3u8\n\n")
 
-    # Write the channel ID (stream number) to tvg-ids.txt
+    # Write the channel ID to tvg-ids.txt
     with open("tvg-ids.txt", 'a', encoding='utf-8') as file:
         file.write(f"{channel[0]}\n")
 
