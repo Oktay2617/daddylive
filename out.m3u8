@@ -1,240 +1,240 @@
-#EXTINF:-1 tvg-name="AMC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/amc-us.png" group-title="USA (DADDY LIVE)", AMC USA
-https://dlhd.dad/stream/stream-303.php
-
-#EXTINF:-1 tvg-name="Arena Sport 2 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Premium
-https://dlhd.dad/stream/stream-135.php
-
-#EXTINF:-1 tvg-name="Astro SuperSport 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Astro SuperSport 1
-https://dlhd.dad/stream/stream-123.php
-
-#EXTINF:-1 tvg-name="AHC (American Heroes Channel)" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/american-heroes-channel-us.png" group-title="USA (DADDY LIVE)", AHC (American Heroes Channel)
-https://dlhd.dad/stream/stream-206.php
-
-#EXTINF:-1 tvg-name="Arena Sport 1 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Premium
-https://dlhd.dad/stream/stream-134.php
+#EXTINF:-1 tvg-name="ABC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-us.png" group-title="USA (DADDY LIVE)", ABC USA
+https://top1.newkso.ru/top1/cdn/premium51/mono.m3u8
 
 #EXTINF:-1 tvg-name="Animal Planet" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/animal-planet-us.png" group-title="USA (DADDY LIVE)", Animal Planet
-https://dlhd.dad/stream/stream-304.php
-
-#EXTINF:-1 tvg-name="A&E USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/usa-us.png" group-title="USA (DADDY LIVE)", A&E USA
-https://dlhd.dad/stream/stream-302.php
+https://top1.newkso.ru/top1/cdn/premium304/mono.m3u8
 
 #EXTINF:-1 tvg-name="Astro SuperSport 2" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", Astro SuperSport 2
-https://dlhd.dad/stream/stream-124.php
-
-#EXTINF:-1 tvg-name="Antenna TV USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/brazzers-tv-us.png" group-title="USA (DADDY LIVE)", Antenna TV USA
-https://dlhd.dad/stream/stream-283.php
+https://top1.newkso.ru/top1/cdn/premium124/mono.m3u8
 
 #EXTINF:-1 tvg-name="Astro SuperSport 3" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", Astro SuperSport 3
-https://dlhd.dad/stream/stream-125.php
+https://top1.newkso.ru/top1/cdn/premium125/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 1 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Premium
+https://top1.newkso.ru/top1/cdn/premium134/mono.m3u8
+
+#EXTINF:-1 tvg-name="AHC (American Heroes Channel)" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/american-heroes-channel-us.png" group-title="USA (DADDY LIVE)", AHC (American Heroes Channel)
+https://top1.newkso.ru/top1/cdn/premium206/mono.m3u8
 
 #EXTINF:-1 tvg-name="Astro SuperSport 4" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", Astro SuperSport 4
-https://dlhd.dad/stream/stream-126.php
+https://top1.newkso.ru/top1/cdn/premium126/mono.m3u8
+
+#EXTINF:-1 tvg-name="Astro SuperSport 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Astro SuperSport 1
+https://top1.newkso.ru/top1/cdn/premium123/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 2 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Premium
+https://top1.newkso.ru/top1/cdn/premium135/mono.m3u8
+
+#EXTINF:-1 tvg-name="A&E USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/usa-us.png" group-title="USA (DADDY LIVE)", A&E USA
+https://top1.newkso.ru/top1/cdn/premium302/mono.m3u8
+
+#EXTINF:-1 tvg-name="AMC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/amc-us.png" group-title="USA (DADDY LIVE)", AMC USA
+https://top1.newkso.ru/top1/cdn/premium303/mono.m3u8
+
+#EXTINF:-1 tvg-name="Antenna TV USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/brazzers-tv-us.png" group-title="USA (DADDY LIVE)", Antenna TV USA
+https://top1.newkso.ru/top1/cdn/premium283/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 3 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", Arena Sport 3 Premium
-https://dlhd.dad/stream/stream-139.php
-
-#EXTINF:-1 tvg-name="Arena Sport 1 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Serbia
-https://dlhd.dad/stream/stream-429.php
+https://top1.newkso.ru/top1/cdn/premium139/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 3 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", Arena Sport 3 Serbia
-https://dlhd.dad/stream/stream-431.php
-
-#EXTINF:-1 tvg-name="Arena Sport 1 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Croatia
-https://dlhd.dad/stream/stream-432.php
-
-#EXTINF:-1 tvg-name="Arena Sport 2 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Serbia
-https://dlhd.dad/stream/stream-430.php
-
-#EXTINF:-1 tvg-name="ABC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-us.png" group-title="USA (DADDY LIVE)", ABC USA
-https://fl1.moveonjoy.com/FOX_Sports_1/index.m3u8
-
-#EXTINF:-1 tvg-name="Arena Sport 2 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Croatia
-https://dlhd.dad/stream/stream-433.php
+https://top1.newkso.ru/top1/cdn/premium431/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 4 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", Arena Sport 4 Serbia
-https://dlhd.dad/stream/stream-581.php
+https://top1.newkso.ru/top1/cdn/premium581/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 2 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Serbia
+https://top1.newkso.ru/top1/cdn/premium430/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 1 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Serbia
+https://top1.newkso.ru/top1/cdn/premium429/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 1 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 Croatia
+https://top1.newkso.ru/top1/cdn/premium432/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 2 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/history-channel-2-us.png" group-title="USA (DADDY LIVE)", Arena Sport 2 Croatia
+https://top1.newkso.ru/top1/cdn/premium433/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 4 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", Arena Sport 4 Croatia
-https://dlhd.dad/stream/stream-580.php
+https://top1.newkso.ru/top1/cdn/premium580/mono.m3u8
 
 #EXTINF:-1 tvg-name="Alkass One" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/one-tv-us.png" group-title="USA (DADDY LIVE)", Alkass One
-https://dlhd.dad/stream/stream-781.php
+https://top1.newkso.ru/top1/cdn/premium781/mono.m3u8
 
 #EXTINF:-1 tvg-name="Alkass Two" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/acc-network-us.png" group-title="USA (DADDY LIVE)", Alkass Two
-https://dlhd.dad/stream/stream-782.php
+https://top1.newkso.ru/top1/cdn/premium782/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 3 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", Arena Sport 3 Croatia
-https://dlhd.dad/stream/stream-434.php
+https://top1.newkso.ru/top1/cdn/premium434/mono.m3u8
 
 #EXTINF:-1 tvg-name="Alkass Three" tvg-logo="" group-title="USA (DADDY LIVE)", Alkass Three
-https://dlhd.dad/stream/stream-783.php
-
-#EXTINF:-1 tvg-name="Abu Dhabi Sports 1 UAE" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 1 UAE
-https://dlhd.dad/stream/stream-600.php
+https://top1.newkso.ru/top1/cdn/premium783/mono.m3u8
 
 #EXTINF:-1 tvg-name="Alkass Four" tvg-logo="" group-title="USA (DADDY LIVE)", Alkass Four
-https://dlhd.dad/stream/stream-784.php
+https://top1.newkso.ru/top1/cdn/premium784/mono.m3u8
 
-#EXTINF:-1 tvg-name="Arena Sport 1 BiH" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 BiH
-https://dlhd.dad/stream/stream-579.php
-
-#EXTINF:-1 tvg-name="Abu Dhabi Sports 1 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 1 Premium
-https://dlhd.dad/stream/stream-609.php
+#EXTINF:-1 tvg-name="Abu Dhabi Sports 1 UAE" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 1 UAE
+https://top1.newkso.ru/top1/cdn/premium600/mono.m3u8
 
 #EXTINF:-1 tvg-name="Antena 3 Spain" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", Antena 3 Spain
-https://dlhd.dad/stream/stream-531.php
+https://top1.newkso.ru/top1/cdn/premium531/mono.m3u8
 
 #EXTINF:-1 tvg-name="Abu Dhabi Sports 2 UAE" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 2 UAE
-https://dlhd.dad/stream/stream-601.php
+https://top1.newkso.ru/top1/cdn/premium601/mono.m3u8
 
 #EXTINF:-1 tvg-name="Abu Dhabi Sports 2 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/nbc-sports-chicago-plus-2-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 2 Premium
-https://dlhd.dad/stream/stream-610.php
-
-#EXTINF:-1 tvg-name="Astro Cricket" tvg-logo="" group-title="USA (DADDY LIVE)", Astro Cricket
-https://dlhd.dad/stream/stream-370.php
+https://top1.newkso.ru/top1/cdn/premium610/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sports Tenis Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bally-sports-ohio-plus-us.png" group-title="USA (DADDY LIVE)", Arena Sports Tenis Serbia
-https://dlhd.dad/stream/stream-612.php
-
-#EXTINF:-1 tvg-name="Adult Swim" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/adult-swim-us.png" group-title="USA (DADDY LIVE)", Adult Swim
-https://dlhd.dad/stream/stream-295.php
-
-#EXTINF:-1 tvg-name="A Sport PK" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/a-and-e-us.png" group-title="USA (DADDY LIVE)", A Sport PK
-https://dlhd.dad/stream/stream-269.php
+https://top1.newkso.ru/top1/cdn/premium612/mono.m3u8
 
 #EXTINF:-1 tvg-name="ACC Network USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/acc-network-us.png" group-title="USA (DADDY LIVE)", ACC Network USA
-https://fl1.moveonjoy.com/FOX_Sports_1/index.m3u8
+https://top1.newkso.ru/top1/cdn/premium664/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 1 BiH" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-news-1-us.png" group-title="USA (DADDY LIVE)", Arena Sport 1 BiH
+https://top1.newkso.ru/top1/cdn/premium579/mono.m3u8
+
+#EXTINF:-1 tvg-name="Astro Cricket" tvg-logo="" group-title="USA (DADDY LIVE)", Astro Cricket
+https://top1.newkso.ru/top1/cdn/premium370/mono.m3u8
+
+#EXTINF:-1 tvg-name="A Sport PK" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/a-and-e-us.png" group-title="USA (DADDY LIVE)", A Sport PK
+https://top1.newkso.ru/top1/cdn/premium269/mono.m3u8
+
+#EXTINF:-1 tvg-name="Adult Swim" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/adult-swim-us.png" group-title="USA (DADDY LIVE)", Adult Swim
+https://top1.newkso.ru/top1/cdn/premium295/mono.m3u8
+
+#EXTINF:-1 tvg-name="Abu Dhabi Sports 1 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="USA (DADDY LIVE)", Abu Dhabi Sports 1 Premium
+https://top1.newkso.ru/top1/cdn/premium609/mono.m3u8
 
 #EXTINF:-1 tvg-name="AXN Movies Portugal" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/filmrise-movies-us.png" group-title="USA (DADDY LIVE)", AXN Movies Portugal
-https://dlhd.dad/stream/stream-717.php
-
-#EXTINF:-1 tvg-name="Arte DE" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/hogar-de-hgtv-us.png" group-title="USA (DADDY LIVE)", Arte DE
-https://dlhd.dad/stream/stream-725.php
-
-#EXTINF:-1 tvg-name="AXS TV USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/axs-tv-us.png" group-title="USA (DADDY LIVE)", AXS TV USA
-https://dlhd.dad/stream/stream-742.php
-
-#EXTINF:-1 tvg-name="ABC NY USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-news-us.png" group-title="USA (DADDY LIVE)", ABC NY USA
-https://dlhd.dad/stream/stream-766.php
+https://top1.newkso.ru/top1/cdn/premium717/mono.m3u8
 
 #EXTINF:-1 tvg-name="Altitude Sports" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/altitude-sports-us.png" group-title="USA (DADDY LIVE)", Altitude Sports
-https://dlhd.dad/stream/stream-923.php
+https://top1.newkso.ru/top1/cdn/premium923/mono.m3u8
+
+#EXTINF:-1 tvg-name="ABC NY USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-news-us.png" group-title="USA (DADDY LIVE)", ABC NY USA
+https://top1.newkso.ru/top1/cdn/premium766/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arte DE" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/hogar-de-hgtv-us.png" group-title="USA (DADDY LIVE)", Arte DE
+https://top1.newkso.ru/top1/cdn/premium725/mono.m3u8
 
 #EXTINF:-1 tvg-name="Azteca Uno MX" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/azteca-america-us.png" group-title="USA (DADDY LIVE)", Azteca Uno MX
-https://dlhd.dad/stream/stream-934.php
-
-#EXTINF:-1 tvg-name="Arena Sport 5 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-5-us.png" group-title="USA (DADDY LIVE)", Arena Sport 5 Serbia
-https://dlhd.dad/stream/stream-940.php
-
-#EXTINF:-1 tvg-name="Azteca 7 MX" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", Azteca 7 MX
-https://dlhd.dad/stream/stream-844.php
-
-#EXTINF:-1 tvg-name="Arena Sport 6 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-6-us.png" group-title="USA (DADDY LIVE)", Arena Sport 6 Serbia
-https://dlhd.dad/stream/stream-941.php
-
-#EXTINF:-1 tvg-name="Arena Sport 7 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", Arena Sport 7 Serbia
-https://dlhd.dad/stream/stream-942.php
-
-#EXTINF:-1 tvg-name="Arena Sport 8 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-8-us.png" group-title="USA (DADDY LIVE)", Arena Sport 8 Serbia
-https://dlhd.dad/stream/stream-943.php
-
-#EXTINF:-1 tvg-name="A Spor Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/a-and-e-us.png" group-title="USA (DADDY LIVE)", A Spor Turkey
-https://dlhd.dad/stream/stream-1011.php
+https://top1.newkso.ru/top1/cdn/premium934/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 9 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bally-sports-ohio-us.png" group-title="USA (DADDY LIVE)", Arena Sport 9 Serbia
-https://dlhd.dad/stream/stream-944.php
+https://top1.newkso.ru/top1/cdn/premium944/mono.m3u8
+
+#EXTINF:-1 tvg-name="AXS TV USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/axs-tv-us.png" group-title="USA (DADDY LIVE)", AXS TV USA
+https://top1.newkso.ru/top1/cdn/premium742/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 6 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-6-us.png" group-title="USA (DADDY LIVE)", Arena Sport 6 Serbia
+https://top1.newkso.ru/top1/cdn/premium941/mono.m3u8
+
+#EXTINF:-1 tvg-name="Azteca 7 MX" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", Azteca 7 MX
+https://top1.newkso.ru/top1/cdn/premium844/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 7 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", Arena Sport 7 Serbia
+https://top1.newkso.ru/top1/cdn/premium942/mono.m3u8
+
+#EXTINF:-1 tvg-name="Arena Sport 8 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-8-us.png" group-title="USA (DADDY LIVE)", Arena Sport 8 Serbia
+https://top1.newkso.ru/top1/cdn/premium943/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arena Sport 10 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/at-and-t-sportsnet-us.png" group-title="USA (DADDY LIVE)", Arena Sport 10 Serbia
-https://dlhd.dad/stream/stream-945.php
+https://top1.newkso.ru/top1/cdn/premium945/mono.m3u8
 
 #EXTINF:-1 tvg-name="Arte France" tvg-logo="" group-title="USA (DADDY LIVE)", Arte France
-https://dlhd.dad/stream/stream-958.php
+https://top1.newkso.ru/top1/cdn/premium958/mono.m3u8
 
 #EXTINF:-1 tvg-name="Automoto La chaîne" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/spectrum-sportsnet-la-us.png" group-title="USA (DADDY LIVE)", Automoto La chaîne
-https://dlhd.dad/stream/stream-961.php
+https://top1.newkso.ru/top1/cdn/premium961/mono.m3u8
 
-#EXTINF:-1 tvg-name="beIN Sports MENA English 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-espanol-us.png" group-title="USA (DADDY LIVE)", beIN Sports MENA English 1
-https://dlhd.dad/stream/stream-61.php
-
-#EXTINF:-1 tvg-name="beIN Sports 2 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN Sports 2 Arabic
-https://dlhd.dad/stream/stream-92.php
-
-#EXTINF:-1 tvg-name="beIN Sports 1 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN Sports 1 Arabic
-https://dlhd.dad/stream/stream-91.php
+#EXTINF:-1 tvg-name="Arena Sport 5 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-5-us.png" group-title="USA (DADDY LIVE)", Arena Sport 5 Serbia
+https://top1.newkso.ru/top1/cdn/premium940/mono.m3u8
 
 #EXTINF:-1 tvg-name="ATV Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/latv-us.png" group-title="USA (DADDY LIVE)", ATV Turkey
-https://dlhd.dad/stream/stream-1000.php
+https://top1.newkso.ru/top1/cdn/premium1000/mono.m3u8
+
+#EXTINF:-1 tvg-name="A Spor Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/a-and-e-us.png" group-title="USA (DADDY LIVE)", A Spor Turkey
+https://top1.newkso.ru/top1/cdn/premium1011/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MENA English 2" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN Sports MENA English 2
-https://dlhd.dad/stream/stream-90.php
+https://top1.newkso.ru/top1/cdn/premium90/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports 1 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN Sports 1 Arabic
+https://top1.newkso.ru/top1/cdn/premium91/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports 3 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", beIN Sports 3 Arabic
-https://dlhd.dad/stream/stream-93.php
+https://top1.newkso.ru/top1/cdn/premium93/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports 2 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN Sports 2 Arabic
+https://top1.newkso.ru/top1/cdn/premium92/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports 4 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", beIN Sports 4 Arabic
-https://dlhd.dad/stream/stream-94.php
+https://top1.newkso.ru/top1/cdn/premium94/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports MENA English 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-espanol-us.png" group-title="USA (DADDY LIVE)", beIN Sports MENA English 1
+https://top1.newkso.ru/top1/cdn/premium61/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports 5 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-5-us.png" group-title="USA (DADDY LIVE)", beIN Sports 5 Arabic
-https://dlhd.dad/stream/stream-95.php
-
-#EXTINF:-1 tvg-name="beIN Sports 8 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-8-us.png" group-title="USA (DADDY LIVE)", beIN Sports 8 Arabic
-https://dlhd.dad/stream/stream-98.php
-
-#EXTINF:-1 tvg-name="beIN Sports 9 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN Sports 9 Arabic
-https://dlhd.dad/stream/stream-99.php
+https://top1.newkso.ru/top1/cdn/premium95/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports 6 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-6-us.png" group-title="USA (DADDY LIVE)", beIN Sports 6 Arabic
-https://dlhd.dad/stream/stream-96.php
+https://top1.newkso.ru/top1/cdn/premium96/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports 7 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", beIN Sports 7 Arabic
-https://dlhd.dad/stream/stream-97.php
+https://top1.newkso.ru/top1/cdn/premium97/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports 8 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-8-us.png" group-title="USA (DADDY LIVE)", beIN Sports 8 Arabic
+https://top1.newkso.ru/top1/cdn/premium98/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports 9 Arabic" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN Sports 9 Arabic
+https://top1.newkso.ru/top1/cdn/premium99/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN SPORTS XTRA 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS XTRA 1
-https://dlhd.dad/stream/stream-100.php
+https://top1.newkso.ru/top1/cdn/premium100/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 4 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 4 France
-https://dlhd.dad/stream/stream-494.php
+https://top1.newkso.ru/top1/cdn/premium494/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 5 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-5-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 5 France
-https://dlhd.dad/stream/stream-495.php
+https://top1.newkso.ru/top1/cdn/premium495/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 7 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-7-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 7 France
-https://dlhd.dad/stream/stream-497.php
+https://top1.newkso.ru/top1/cdn/premium497/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 6 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-6-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 6 France
-https://dlhd.dad/stream/stream-496.php
+https://top1.newkso.ru/top1/cdn/premium496/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 8 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-8-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 8 France
-https://dlhd.dad/stream/stream-498.php
-
-#EXTINF:-1 tvg-name="beIN Sports MAX 9 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-espanol-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 9 France
-https://dlhd.dad/stream/stream-499.php
-
-#EXTINF:-1 tvg-name="beIN SPORTS 1 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 1 France
-https://dlhd.dad/stream/stream-116.php
-
-#EXTINF:-1 tvg-name="beIN SPORTS 3 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 3 France
-https://dlhd.dad/stream/stream-118.php
+https://top1.newkso.ru/top1/cdn/premium498/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN Sports MAX 10 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-espanol-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 10 France
-https://dlhd.dad/stream/stream-500.php
+https://top1.newkso.ru/top1/cdn/premium500/mono.m3u8
 
-#EXTINF:-1 tvg-name="beIN SPORTS 2 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 2 France
-https://dlhd.dad/stream/stream-117.php
+#EXTINF:-1 tvg-name="beIN SPORTS 1 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 1 France
+https://top1.newkso.ru/top1/cdn/premium116/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN SPORTS 3 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 3 France
+https://top1.newkso.ru/top1/cdn/premium118/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN SPORTS 1 Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 1 Turkey
-https://dlhd.dad/stream/stream-62.php
+https://top1.newkso.ru/top1/cdn/premium62/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN SPORTS 2 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 2 France
+https://top1.newkso.ru/top1/cdn/premium117/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN SPORTS 2 Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 2 Turkey
-https://dlhd.dad/stream/stream-63.php
+https://top1.newkso.ru/top1/cdn/premium63/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN Sports MAX 9 France" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-espanol-us.png" group-title="USA (DADDY LIVE)", beIN Sports MAX 9 France
+https://top1.newkso.ru/top1/cdn/premium499/mono.m3u8
 
 #EXTINF:-1 tvg-name="beIN SPORTS 3 Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 3 Turkey
-https://dlhd.dad/stream/stream-64.php
-
-#EXTINF:-1 tvg-name="beIN SPORTS 4 Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 4 Turkey
-https://dlhd.dad/stream/stream-67.php
+https://top1.newkso.ru/top1/cdn/premium64/mono.m3u8
 
 #EXTINF:-1 tvg-name="BeIN Sports HD Qatar" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-xtra-us.png" group-title="USA (DADDY LIVE)", BeIN Sports HD Qatar
-https://dlhd.dad/stream/stream-578.php
+https://top1.newkso.ru/top1/cdn/premium578/mono.m3u8
+
+#EXTINF:-1 tvg-name="beIN SPORTS 4 Turkey" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="USA (DADDY LIVE)", beIN SPORTS 4 Turkey
+https://top1.newkso.ru/top1/cdn/premium67/mono.m3u8
 
