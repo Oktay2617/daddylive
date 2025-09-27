@@ -1,16 +1,31 @@
 name: Build M3U8 Playlist
 
 permissions:
-  contents: write
+  contents: write   # allow pushing with GITHUB_TOKEN
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
-  workflow_dispatch:
+    - cron: "0 */6 * * *"     # every 6 hours
+  workflow_dispatch:          # manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Speed/behavior knobs for scraper.py (edit as you like)
+    env:
+      FAST: "1"               # fast defaults
+      MAX_CHANNELS: "80"      # cap channels per run
+      CONCURRENCY: "12"       # parallel workers
+      FOLDERS: "stream,player" # which player folders to try
+      IFRAME_HOPS: "1"        # follow up to 1 iframe hop
+      DLHD_INSECURE: "1"      # skip TLS verify for dlhd.dad (stability)
+      REQ_TIMEOUT: "10"       # request timeout (sec)
+      RETRIES: "1"            # retries per request
+      VALIDATE_M3U8: "1"      # verify .m3u8 actually returns #EXTM3U
+      M3U8_DENYLIST: "newkso.ru,newks.ru,new-ks.com,newkso.su"
+      # Optional: limit to specific channels (comma-separated, fuzzy matched)
+      # CHANNELS: "ESPN,NFL Network,FS1,ABC USA,NBA TV"
 
     steps:
       - name: Checkout repository
@@ -23,12 +38,30 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          pip install requests beautifulsoup4 certifi
 
-      - name: Determine script folder
+      # Optional: point SSL to certifi bundle (harmless if not needed)
+      - name: Ensure CA bundle
+        run: |
+          python - << 'PY'
+          import certifi, os
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f"SSL_CERT_FILE={certifi.where()}\n")
+          print("Using CA bundle:", certifi.where())
+          PY
+
+      - name: Locate scraper
         id: folder
         run: |
           if [ -f "$GITHUB_WORKSPACE/scraper.py" ]; then
@@ -38,20 +71,30 @@ jobs:
           else
             echo "scraper.py not found!"
             exit 1
-          fi
 
       - name: Run scraper
         run: |
-          echo "Running scraper from folder: ${{ env.folder }}"
-          export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}/${{ env.folder }}"
+          echo "Running scraper from: ${{ env.folder }}"
           python ${{ env.folder }}/scraper.py
 
+      - name: Validate outputs
+        run: |
+          if [ ! -s out.m3u8 ]; then
+            echo "out.m3u8 is missing or empty."
+            exit 1
+          fi
+          echo "Preview:"
+          head -n 50 out.m3u8 || true
+
       - name: Commit and push updated playlist
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           git config --global safe.directory "$GITHUB_WORKSPACE"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add out.m3u8 tvg-ids.txt || true
+          git add out.m3u8 || true
           git commit -m "Update M3U8 playlist" || echo "No changes to commit"
-          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          # Rebase in case the branch moved
+          git pull --rebase origin "$BRANCH_NAME" || true
           git push
