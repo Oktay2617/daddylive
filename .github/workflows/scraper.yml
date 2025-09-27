@@ -1,30 +1,28 @@
 name: Build M3U8 Playlist
 
 permissions:
-  contents: write   # allow pushing with GITHUB_TOKEN
+  contents: write
 
 on:
   schedule:
-    - cron: "0 */6 * * *"     # every 6 hours
-  workflow_dispatch:          # manual trigger
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Speed/behavior knobs for scraper.py (edit as you like)
     env:
-      FAST: "1"               # fast defaults
-      MAX_CHANNELS: "80"      # cap channels per run
-      CONCURRENCY: "12"       # parallel workers
-      FOLDERS: "stream,player" # which player folders to try
-      IFRAME_HOPS: "1"        # follow up to 1 iframe hop
-      DLHD_INSECURE: "1"      # skip TLS verify for dlhd.dad (stability)
-      REQ_TIMEOUT: "10"       # request timeout (sec)
-      RETRIES: "1"            # retries per request
-      VALIDATE_M3U8: "1"      # verify .m3u8 actually returns #EXTM3U
+      FAST: "1"
+      MAX_CHANNELS: "80"
+      CONCURRENCY: "12"
+      FOLDERS: "stream,player"
+      IFRAME_HOPS: "1"
+      DLHD_INSECURE: "1"
+      REQ_TIMEOUT: "10"
+      RETRIES: "1"
+      VALIDATE_M3U8: "1"
       M3U8_DENYLIST: "newkso.ru,newks.ru,new-ks.com,newkso.su"
-      # Optional: limit to specific channels (comma-separated, fuzzy matched)
       # CHANNELS: "ESPN,NFL Network,FS1,ABC USA,NBA TV"
 
     steps:
@@ -51,7 +49,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 certifi
 
-      # Optional: point SSL to certifi bundle (harmless if not needed)
       - name: Ensure CA bundle
         run: |
           python - << 'PY'
@@ -62,20 +59,21 @@ jobs:
           PY
 
       - name: Locate scraper
-        id: folder
+        shell: bash
         run: |
           if [ -f "$GITHUB_WORKSPACE/scraper.py" ]; then
-            echo "folder=." >> $GITHUB_ENV
+            echo "folder=." >> "$GITHUB_ENV"
           elif [ -f "$GITHUB_WORKSPACE/daddylive/scraper.py" ]; then
-            echo "folder=daddylive" >> $GITHUB_ENV
+            echo "folder=daddylive" >> "$GITHUB_ENV"
           else
             echo "scraper.py not found!"
             exit 1
+          fi
 
       - name: Run scraper
         run: |
           echo "Running scraper from: ${{ env.folder }}"
-          python ${{ env.folder }}/scraper.py
+          python "${{ env.folder }}/scraper.py"
 
       - name: Validate outputs
         run: |
@@ -95,6 +93,5 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add out.m3u8 || true
           git commit -m "Update M3U8 playlist" || echo "No changes to commit"
-          # Rebase in case the branch moved
           git pull --rebase origin "$BRANCH_NAME" || true
           git push
