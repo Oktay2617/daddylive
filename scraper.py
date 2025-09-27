@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# scraper.py — fast, parallel HLS resolver with template-var substitution for ${CHANNEL_KEY}
+# scraper.py — fast, parallel HLS resolver with validation + denylist
 # Requires: requests, beautifulsoup4
 
-import os, re, json, difflib, time, base64
+import os, re, json, time, base64, urllib.parse
 from typing import Optional, Tuple, List, Dict
 import concurrent.futures as cf
 
@@ -22,6 +22,13 @@ DLHD_INSECURE   = os.getenv("DLHD_INSECURE", "1") == "1"   # skip verify for dlh
 REQ_TIMEOUT     = float(os.getenv("REQ_TIMEOUT", "10" if FAST_MODE else "20"))
 RETRIES         = int(os.getenv("RETRIES", "1" if FAST_MODE else "3"))
 IFRAME_HOPS     = int(os.getenv("IFRAME_HOPS", "1" if FAST_MODE else "2"))
+
+# Validation & filtering
+VALIDATE_M3U8   = os.getenv("VALIDATE_M3U8", "1") == "1"
+M3U8_DENYLIST   = set([h.strip().lower() for h in os.getenv(
+    "M3U8_DENYLIST",
+    "newkso.ru,newks.ru,new-ks.com,newkso.su"
+).split(",") if h.strip()])
 
 CHANNELS_ENV    = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
 OUT_M3U         = "out.m3u8"
@@ -69,6 +76,24 @@ def http_get_text(url: str, *, referer: Optional[str] = None, verify: Optional[b
             last = str(e)
         time.sleep(0.2)
     raise RuntimeError(f"GET failed: {url} ({last})")
+
+def http_get_bytes(url: str, *, referer: Optional[str] = None, verify: Optional[bool] = None) -> Optional[bytes]:
+    """
+    Lightweight fetch used to validate .m3u8. Returns bytes or None on failure.
+    """
+    sess = _sess()
+    headers = dict(DEFAULT_HEADERS)
+    headers["Accept"] = "application/vnd.apple.mpegurl,application/x-mpegURL,*/*;q=0.1"
+    if referer: headers["Referer"] = referer
+    if verify is None:
+        verify = not (DLHD_INSECURE and "dlhd.dad" in url)
+    try:
+        r = sess.get(url, headers=headers, timeout=min(REQ_TIMEOUT, 6), verify=verify, allow_redirects=True)
+        if r.status_code == 200 and r.content:
+            return r.content
+    except Exception:
+        pass
+    return None
 
 # ---------- GitHub tv-logos parsing ----------
 def extract_payload_from_github_tree_html(html: str) -> dict:
@@ -155,77 +180,91 @@ def pick_logo_path(channel_name: str, payload: dict) -> str:
     matches.sort(key=score, reverse=True)
     return (matches[0].get('id') or {}).get('path','')
 
-# ---------- HLS extraction with template substitution ----------
+# ---------- HLS extraction with validation ----------
 M3U8_PATTERNS = [
     re.compile(r'https?://[^\s\'"]+\.m3u8[^\s\'"]*', re.I),
     re.compile(r'["\'](https?://[^"\']+\.m3u8[^"\']*)["\']', re.I),
 ]
 B64_PAT = re.compile(r'(?:atob\(|btoa\()["\']([A-Za-z0-9+/=]{12,})["\']\)?', re.I)
-TEMPLATE_VAR_PAT = re.compile(r'\$\{([A-Za-z0-9_]+)\}')  # ${CHANNEL_KEY}
-ASSIGN_PAT = re.compile(r'(?:var|let|const)\s+([A-Za-z0-9_]+)\s*=\s*([\'"])(.*?)\2\s*;')  # const VAR="value";
+TEMPLATE_VAR_PAT = re.compile(r'\$\{([A-Za-z0-9_]+)\}')
+ASSIGN_PAT = re.compile(r'(?:var|let|const)\s+([A-Za-z0-9_]+)\s*=\s*([\'"])(.*?)\2\s*;')
 
 def decode_possible_b64(s: str) -> List[str]:
-    found = []
+    out = []
     for m in B64_PAT.findall(s or ""):
         try:
             dec = base64.b64decode(m + "===")
             dec = dec.decode("utf-8", errors="ignore")
             if ".m3u8" in dec:
-                found.append(dec)
+                out.append(dec)
         except Exception:
             pass
-    return found
+    return out
 
 def extract_template_vars(html: str) -> Dict[str,str]:
-    """Pull simple JS assignments like const CHANNEL_KEY='abc123' from inline scripts."""
     vars: Dict[str,str] = {}
     for name, _, value in ASSIGN_PAT.findall(html or ""):
-        # keep only uppercase-ish tokens or channel-related keys to avoid noise
         if name.isupper() or "CHANNEL" in name.upper() or "KEY" in name.upper() or "TOKEN" in name.upper():
             vars[name] = value
     return vars
 
 def normalize_m3u8_url(url: str, html: str, ctx: Dict[str,str]) -> Optional[str]:
-    """Replace ${VAR} using ctx (or values found in html), strip stray backticks, and validate."""
     if not url: return None
     url = url.strip().strip('`').strip('"').strip("'")
-    # if contains templates, try to replace them
     missing = False
     def repl(m):
         nonlocal missing
         var = m.group(1)
         if var in ctx:
             return ctx[var]
-        # try to discover in html if not provided
         assign = re.search(rf'(?:var|let|const)\s+{re.escape(var)}\s*=\s*([\'"])(.*?)\1\s*;', html or "", re.I)
         if assign:
             return assign.group(2)
         missing = True
         return m.group(0)
     url2 = TEMPLATE_VAR_PAT.sub(repl, url)
-    if missing:
+    if missing or "${" in url2:
         return None
-    # basic sanity
     if ".m3u8" not in url2.lower():
         return None
-    if "${" in url2:
+    # denylist hostname
+    try:
+        host = urllib.parse.urlparse(url2).hostname or ""
+    except Exception:
+        host = ""
+    if host.lower() in M3U8_DENYLIST:
         return None
     return url2
 
 def parse_m3u8_candidates(html: str) -> List[str]:
     cands = []
     for pat in M3U8_PATTERNS:
-        cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(html or "")]
+        for m in pat.finditer(html or ""):
+            cands.append(m.group(1) if m.groups() else m.group(0))
     for dec in decode_possible_b64(html or ""):
         for pat in M3U8_PATTERNS:
-            cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(dec)]
-    # de-dup preserve order
+            for m in pat.finditer(dec):
+                cands.append(m.group(1) if m.groups() else m.group(0))
+    # de-dup keep order
     seen, uniq = set(), []
     for u in cands:
         u = u.strip().strip('`').strip('"').strip("'")
-        if u not in seen:
+        if u and u not in seen:
             seen.add(u); uniq.append(u)
     return uniq
+
+def validate_m3u8(url: str, referers: List[str]) -> bool:
+    if not VALIDATE_M3U8:
+        return True
+    for ref in (referers + ["https://dlhd.dad/"]):
+        data = http_get_bytes(url, referer=ref)
+        if not data:
+            continue
+        # accept master or media playlist
+        head = data[:2048].decode("utf-8", errors="ignore")
+        if "#EXTM3U" in head:
+            return True
+    return False
 
 def find_iframe_srcs(html: str) -> List[str]:
     srcs = []
@@ -238,7 +277,7 @@ def find_iframe_srcs(html: str) -> List[str]:
         if u.startswith("//"): u = "https:" + u
         if u not in seen:
             seen.add(u); uniq.append(u)
-    return uniq[:2]  # cap to 2 iframes per page (speed)
+    return uniq[:2]
 
 def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
     ctx: Dict[str,str] = {}
@@ -247,23 +286,23 @@ def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
         try:
             html = http_get_text(page, referer="https://dlhd.dad/")
             ctx.update(extract_template_vars(html))
-
-            # scan this page
-            for cand in parse_m3u8_candidates(html):
+            # try page candidates
+            cands = parse_m3u8_candidates(html)
+            for cand in cands:
                 real = normalize_m3u8_url(cand, html, ctx)
-                if real:
+                if real and validate_m3u8(real, [page]):
                     return real
-
-            # try iframes (one hop by default)
+            # try iframes (one hop default)
             if IFRAME_HOPS > 0:
                 for i, iframe_url in enumerate(find_iframe_srcs(html)):
                     if i >= IFRAME_HOPS: break
                     try:
                         iframe_html = http_get_text(iframe_url, referer=page)
                         ctx.update(extract_template_vars(iframe_html))
-                        for cand in parse_m3u8_candidates(iframe_html):
+                        cands2 = parse_m3u8_candidates(iframe_html)
+                        for cand in cands2:
                             real = normalize_m3u8_url(cand, iframe_html, ctx)
-                            if real:
+                            if real and validate_m3u8(real, [iframe_url, page]):
                                 return real
                     except Exception:
                         pass
@@ -271,7 +310,7 @@ def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
             pass
     return None
 
-# ---------- Utility ----------
+# ---------- Utils & main ----------
 def nuke(path: str):
     if os.path.isfile(path):
         os.remove(path)
@@ -286,16 +325,12 @@ def fetch_first_ok_text(urls: List[str]) -> Tuple[str, str]:
             last_err = e
     raise SystemExit(f"All endpoints failed. Last error: {last_err}")
 
-# ---------- Main ----------
 def main():
     nuke(OUT_M3U)
 
     # Channels JSON
     used_url, channels_text = fetch_first_ok_text(CHANNEL_ENDPOINTS)
-    try:
-        channels_data = json.loads(channels_text)
-    except json.JSONDecodeError as e:
-        raise SystemExit(f"Failed to parse channels JSON from {used_url}: {e}")
+    channels_data = json.loads(channels_text)
     if not isinstance(channels_data, list):
         raise SystemExit("Channels JSON is not a list.")
 
@@ -315,6 +350,24 @@ def main():
 
     all_names = [c.get("channel_name","") for c in channels_data if "channel_name" in c and "channel_id" in c]
     name_to_id = {c["channel_name"]: c["channel_id"] for c in channels_data if "channel_name" in c and "channel_id" in c}
+
+    def best_fuzzy(needle: str, candidates: List[str]) -> Optional[str]:
+        n = normalize_name(needle)
+        cand_norm = [normalize_name(c) for c in candidates]
+        for i, c in enumerate(cand_norm):
+            if c == n: return candidates[i]
+        nt = set(tokens(n))
+        best_i, best_score = None, 0
+        for i, c in enumerate(cand_norm):
+            inter = len(nt & set(tokens(c)))
+            if inter > best_score:
+                best_i, best_score = i, inter
+        import difflib as dl
+        m = dl.get_close_matches(n, cand_norm, n=1, cutoff=0.72)
+        if m:
+            j = cand_norm.index(m[0])
+            return candidates[j]
+        return None
 
     def iter_targets():
         picked = []
@@ -341,7 +394,7 @@ def main():
                 pass
             results.append((name, ch_id, hls))
 
-    # Write M3U
+    # Write M3U (fallback to player page if no validated HLS)
     written = 0
     with open(OUT_M3U, "w", encoding="utf-8") as m3u:
         for display_name, ch_id, hls in results:
