@@ -31,8 +31,9 @@ jobs:
           elif [ -f "$GITHUB_WORKSPACE/daddylive/scraper.py" ]; then
             echo "folder=daddylive" >> $GITHUB_ENV
           else
-            echo "scraper.py not found!" 
+            echo "scraper.py not found!"
             exit 1
+          fi
 
       - name: Run scraper
         run: |
