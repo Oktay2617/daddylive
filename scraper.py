@@ -5,6 +5,7 @@
 import os, re, json, difflib, time, base64
 from typing import Optional, Tuple, List, Dict
 import concurrent.futures as cf
+from urllib.parse import urlparse ### DEĞİŞİKLİK ### (urlparse eklendi)
 
 import requests
 from requests.exceptions import SSLError, RequestException
@@ -240,7 +241,8 @@ def find_iframe_srcs(html: str) -> List[str]:
             seen.add(u); uniq.append(u)
     return uniq[:2]  # cap to 2 iframes per page (speed)
 
-def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
+### DEĞİŞİKLİK ###: Fonksiyon artık (hls_url, referer_url) tuple'ı döndürecek
+def resolve_hls_for_channel_id(ch_id: str) -> Optional[Tuple[str, str]]:
     ctx: Dict[str,str] = {}
     for folder in PLAYER_FOLDERS:
         page = f"https://dlhd.dad/{folder}/stream-{ch_id}.php"
@@ -252,7 +254,7 @@ def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
             for cand in parse_m3u8_candidates(html):
                 real = normalize_m3u8_url(cand, html, ctx)
                 if real:
-                    return real
+                    return real, page ### DEĞİŞİKLİK ###: URL ile birlikte referer (page) döndürülüyor
 
             # try iframes (one hop by default)
             if IFRAME_HOPS > 0:
@@ -264,7 +266,7 @@ def resolve_hls_for_channel_id(ch_id: str) -> Optional[str]:
                         for cand in parse_m3u8_candidates(iframe_html):
                             real = normalize_m3u8_url(cand, iframe_html, ctx)
                             if real:
-                                return real
+                                return real, iframe_url ### DEĞİŞİKLİK ###: URL ile birlikte referer (iframe_url) döndürülüyor
                     except Exception:
                         pass
         except Exception:
@@ -334,25 +336,46 @@ def main():
         futs = {exe.submit(resolve_hls_for_channel_id, ch_id): (name, ch_id) for name, ch_id in todo}
         for fut in cf.as_completed(futs):
             name, ch_id = futs[fut]
-            hls = None
+            hls_data = None
             try:
-                hls = fut.result()
+                hls_data = fut.result()
             except Exception:
                 pass
-            results.append((name, ch_id, hls))
+            results.append((name, ch_id, hls_data))
 
+    ### DEĞİŞİKLİK ###: M3U8 yazma döngüsü tamamen yenilendi
     # Write M3U
     written = 0
     with open(OUT_M3U, "w", encoding="utf-8") as m3u:
-        for display_name, ch_id, hls in results:
-            final_url = hls or f"https://dlhd.dad/stream/stream-{ch_id}.php"
+        m3u.write("#EXTM3U\n") # Dosyanın başına #EXTM3U etiketi ekleniyor
+        for display_name, ch_id, hls_data in results:
             logo_rel = pick_logo_path(display_name, payload)
             logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_rel}" if logo_rel else ""
+            
+            # Kanal bilgi satırını yaz
             m3u.write(
                 f"#EXTINF:-1 tvg-name=\"{display_name}\" "
                 f"tvg-logo=\"{logo_url}\" group-title=\"USA (DADDY LIVE)\", {display_name}\n"
             )
-            m3u.write(final_url + "\n\n")
+
+            # Eğer HLS linki bulunduysa, ek başlıkları yaz
+            if hls_data:
+                hls_url, referer_url = hls_data
+                user_agent = DEFAULT_HEADERS.get("User-Agent", "")
+                
+                # Referer'dan Origin'i türet
+                parsed_uri = urlparse(referer_url)
+                origin_url = f'{parsed_uri.scheme}://{parsed_uri.netloc}'
+
+                m3u.write(f'#EXT-X-USER-AGENT:{user_agent}\n')
+                m3u.write(f'#EXT-X-REFERER:{referer_url}\n')
+                m3u.write(f'#EXT-X-ORIGIN:{origin_url}\n')
+                m3u.write(hls_url + "\n\n")
+            else:
+                # HLS bulunamadıysa, eski usül linki yaz
+                fallback_url = f"https://dlhd.dad/stream/stream-{ch_id}.php"
+                m3u.write(fallback_url + "\n\n")
+
             written += 1
 
     print(f"Channels processed (capped): {len(results)} / Max={MAX_CHANNELS}")
