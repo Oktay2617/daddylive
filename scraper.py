@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-# scraper.py (Network Dinleme Metodu ile Güçlendirilmiş Versiyon)
-# Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager, selenium-wire
+# scraper.py (Network Dinleme Metodu ile Güçlendirilmiş ve M3U8 Formatı Düzeltilmiş Versiyon)
+# Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager, selenium-wire, blinker==1.7.0
 
-import os, re, json, time
+import os
+import re
+import json
+import time
 from typing import Optional, Tuple, List, Dict
 import concurrent.futures as cf
 
@@ -18,15 +21,15 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 # =============================
 # Ayarlar ve Sabitler
 # =============================
-FAST_MODE       = os.getenv("FAST", "1") == "1"
-MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "25" if FAST_MODE else "999999"))
-CONCURRENCY     = int(os.getenv("CONCURRENCY", "2" if FAST_MODE else "2")) 
-FOLDERS_ENV     = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
-PLAYER_FOLDERS  = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
+FAST_MODE = os.getenv("FAST", "1") == "1"
+MAX_CHANNELS = int(os.getenv("MAX_CHANNELS", "25" if FAST_MODE else "999999"))
+CONCURRENCY = int(os.getenv("CONCURRENCY", "2" if FAST_MODE else "2"))
+FOLDERS_ENV = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
+PLAYER_FOLDERS = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
 
-CHANNELS_HTML   = "247channels.html"
-OUT_M3U         = "out.m3u8"
-CACHE_FILE      = "url_cache.json"
+CHANNELS_HTML = "247channels.html"
+OUT_M3U = "out.m3u8"
+CACHE_FILE = "url_cache.json"
 
 # =============================
 # Logo Eşleştirme Fonksiyonları
@@ -54,7 +57,7 @@ def pick_logo_path(display_name, payload):
     tree = payload.get("tree", {})
     items = tree.get("items", [])
     if not items: return ""
-    
+
     search_words = [word for word in re.split(r'[^a-zA-Z0-9]+', display_name.lower()) if word]
     best_match = None
     highest_score = 0
@@ -69,11 +72,11 @@ def pick_logo_path(display_name, payload):
         for word in search_words:
             if word in name_lower:
                 score += 1
-        
+
         if score > highest_score:
             highest_score = score
             best_match = path
-    
+
     return best_match if highest_score > 0 else ""
 
 # =============================
@@ -82,21 +85,24 @@ def pick_logo_path(display_name, payload):
 def load_url_cache() -> Dict[str, str]:
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r") as f:
-            try: return json.load(f)
-            except json.JSONDecodeError: return {}
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
     return {}
 
 def save_url_cache(cache: Dict[str, str]):
-    with open(CACHE_FILE, "w") as f: json.dump(cache, f, indent=2)
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
 
 def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
     if not os.path.exists(CHANNELS_HTML):
         print(f"'{CHANNELS_HTML}' dosyası bulunamadı.", flush=True)
         return []
-    
+
     with open(CHANNELS_HTML, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
-    
+
     links = soup.select("a[href*='stream-']")
     channels = []
     for link in links:
@@ -113,8 +119,7 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
     if hls_url: return channel
 
     player_urls = [f"https://daddylivestream.com/{folder}/stream-{channel_id}.php" for folder in PLAYER_FOLDERS]
-    
-    # Selenium-wire için tarayıcı seçenekleri
+
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
@@ -123,20 +128,17 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
     chrome_options.add_argument('--mute-audio')
 
-
-    # Selenium-wire'a özel ayarlar
     seleniumwire_options = {
         'suppress_connection_errors': True,
-        'disable_capture': True # Performans için başlangıçta network yakalamayı kapat
+        'disable_capture': True
     }
-    
+
     driver = None
     try:
         print(f"[{display_name}] Tarayıcı (network modda) başlatılıyor...", flush=True)
-        # Selenium-wire'dan webdriver'ı başlatıyoruz
         driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()), 
-            options=chrome_options, 
+            service=ChromeService(ChromeDriverManager().install()),
+            options=chrome_options,
             seleniumwire_options=seleniumwire_options
         )
         driver.set_page_load_timeout(40)
@@ -144,15 +146,11 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
         for url in player_urls:
             print(f"[{display_name}] URL deneniyor: {url}", flush=True)
             try:
-                # Network yakalamayı temizle ve sadece m3u8 için başlat
                 del driver.requests
-                driver.scopes = [
-                    '.*\\.m3u8.*'
-                ]
+                driver.scopes = ['.*\\.m3u8.*']
                 
                 driver.get(url)
 
-                # Sayfanın .m3u8 dosyası için bir network isteği yapmasını bekle (30 saniye)
                 hls_request = driver.wait_for_request(r'\.m3u8', timeout=30)
                 hls = hls_request.url
 
@@ -165,11 +163,11 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
                 continue
             except WebDriverException as e:
                 print(f"[{display_name}] WebDriver hatası: {e}", flush=True)
-                break 
+                break
             except Exception as e:
                 print(f"[{display_name}] {url} işlenirken hata oluştu: {e}", flush=True)
                 continue
-    
+
     except Exception as e:
         print(f"[{display_name}] Selenium'da kritik bir hata oluştu: {e}", flush=True)
     finally:
@@ -222,14 +220,14 @@ if __name__ == "__main__":
     results_sorted = sorted([r for r in results if r and r[2]], key=lambda r: r[0])
     
     with open(OUT_M3U, "w", encoding="utf-8") as out:
-        out.write("#EXTM3U\\n")
+        out.write("#EXTM3U\n")
         for display_name, ch_id, hls in results_sorted:
             logo_path = pick_logo_path(display_name, payload)
             logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_path}" if logo_path else ""
             line = (
                 f'#EXTINF:-1 tvg-id="{ch_id}" tvg-name="{display_name}" tvg-logo="{logo_url}" '
-                f'group-title="Daddylive", {display_name}\\n'
-                f'{hls}\\n'
+                f'group-title="Daddylive", {display_name}\n'
+                f'{hls}\n'
             )
             out.write(line)
 
