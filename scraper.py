@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# scraper.py (Daha kararlı ve gelişmiş Selenium versiyonu)
+# scraper.py (Performans ve Geri Bildirim için İyileştirilmiş Versiyon)
 # Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager
 
 import os, re, json, time
@@ -17,24 +17,24 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 # =============================
 # Ayarlar ve Sabitler
 # =============================
 FAST_MODE       = os.getenv("FAST", "1") == "1"
 MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "25" if FAST_MODE else "999999"))
-CONCURRENCY     = int(os.getenv("CONCURRENCY", "4" if FAST_MODE else "2")) # GitHub Actions için 4 idealdir
+# GitHub Actions runner'ları için CONCURRENCY değerini düşürdük. Bu, kaynak yetersizliğini önler.
+CONCURRENCY     = int(os.getenv("CONCURRENCY", "2" if FAST_MODE else "2")) 
 FOLDERS_ENV     = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
 PLAYER_FOLDERS  = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
 
-CHANNELS_URL    = "https://daddylivestream.com/24-7-channels.php"
 CHANNELS_HTML   = "247channels.html"
 OUT_M3U         = "out.m3u8"
 CACHE_FILE      = "url_cache.json"
 
 # =============================
-# Logo Eşleştirme Fonksiyonları (tvlogo.py'den alınmıştır)
+# Logo Eşleştirme Fonksiyonları
 # =============================
 def extract_payload_from_file(file_path):
     try:
@@ -87,19 +87,16 @@ def pick_logo_path(display_name, payload):
 def load_url_cache() -> Dict[str, str]:
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r") as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                return {} # Bozuk cache dosyasını yoksay
+            try: return json.load(f)
+            except json.JSONDecodeError: return {}
     return {}
 
 def save_url_cache(cache: Dict[str, str]):
-    with open(CACHE_FILE, "w") as f:
-        json.dump(cache, f, indent=2)
+    with open(CACHE_FILE, "w") as f: json.dump(cache, f, indent=2)
 
 def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
     if not os.path.exists(CHANNELS_HTML):
-        print(f"'{CHANNELS_HTML}' dosyası bulunamadı. Lütfen {CHANNELS_URL} adresinden indirip kaydedin.")
+        print(f"'{CHANNELS_HTML}' dosyası bulunamadı.", flush=True)
         return []
     
     with open(CHANNELS_HTML, "r", encoding="utf-8") as f:
@@ -117,18 +114,13 @@ def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
     return channels
 
 def find_m3u8_in_text(text: str) -> Optional[str]:
-    """Verilen metin içinde m3u8 linkini arar."""
-    # En yaygın m3u8 link formatlarını arar
     match = re.search(r"(https?://[^\s\"']+\.m3u8[^\s\"']*)", text)
-    if match:
-        return match.group(1)
+    if match: return match.group(1)
     return None
 
 def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tuple[str, str, Optional[str]]:
-    """Selenium kullanarak bir kanalın m3u8 linkini çözer."""
     display_name, channel_id, hls_url = channel
-    if hls_url:
-        return channel
+    if hls_url: return channel
 
     player_urls = [f"https://daddylivestream.com/{folder}/stream-{channel_id}.php" for folder in PLAYER_FOLDERS]
     
@@ -137,61 +129,68 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    # Farklı bir User-Agent bot tespitini zorlaştırabilir
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
     
     driver = None
     try:
-        # webdriver-manager sürücüyü otomatik olarak indirip kurar
+        print(f"[{display_name}] Tarayıcı başlatılıyor...", flush=True)
         driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-        driver.set_page_load_timeout(30) # Sayfa yükleme zaman aşımını artır
+        driver.set_page_load_timeout(30)
 
         for url in player_urls:
-            print(f"[{display_name}] URL deneniyor: {url}")
+            print(f"[{display_name}] URL deneniyor: {url}", flush=True)
             try:
                 driver.get(url)
-                # Sayfanın ve scriptlerin yüklenmesi için daha uzun bir genel bekleme süresi ver
-                time.sleep(5) 
+                # Bekleme süresini artırdık
+                wait = WebDriverWait(driver, 20) 
                 
                 hls = None
-
-                # 1. Yöntem: Sayfa kaynağının tamamında m3u8 ara
-                page_source = driver.page_source
-                hls = find_m3u8_in_text(page_source)
-
-                if hls:
-                    print(f"[{display_name}] Sayfa kaynağında bulundu!")
-                else:
-                    # 2. Yöntem: Iframe içinde ara
-                    try:
-                        wait = WebDriverWait(driver, 10)
-                        iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-                        driver.switch_to.frame(iframe)
-                        print(f"[{display_name}] Iframe'e geçildi.")
-                        time.sleep(5) # Iframe içeriğinin yüklenmesini bekle
-                        iframe_source = driver.page_source
-                        hls = find_m3u8_in_text(iframe_source)
-                        if hls:
-                             print(f"[{display_name}] Iframe kaynağında bulundu!")
-                        driver.switch_to.default_content() # Ana sayfaya geri dön
-                    except TimeoutException:
-                        print(f"[{display_name}] Iframe bulunamadı, ana sayfada devam ediliyor.")
                 
+                # Önce iframe'i arayalım
+                try:
+                    iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+                    driver.switch_to.frame(iframe)
+                    print(f"[{display_name}] Iframe'e geçildi.", flush=True)
+                    # Iframe içeriğinin yüklenmesi için ek bekleme
+                    time.sleep(5) 
+                    iframe_source = driver.page_source
+                    hls = find_m3u8_in_text(iframe_source)
+                    if hls:
+                        print(f"[{display_name}] M3U8 iframe içinde bulundu!", flush=True)
+                    driver.switch_to.default_content()
+                except TimeoutException:
+                    print(f"[{display_name}] Iframe bulunamadı, ana sayfada aranıyor.", flush=True)
+                
+                # Eğer iframe'de bulamazsa veya iframe yoksa, ana sayfa kaynağında ara
+                if not hls:
+                    page_source = driver.page_source
+                    hls = find_m3u8_in_text(page_source)
+                    if hls:
+                        print(f"[{display_name}] M3U8 ana sayfada bulundu!", flush=True)
+
                 if hls:
-                    print(f"BAŞARILI: {display_name} ({channel_id}) -> {hls}")
+                    print(f"BAŞARILI: {display_name} ({channel_id}) -> {hls}", flush=True)
                     return (display_name, channel_id, hls)
 
+            except TimeoutException:
+                print(f"[{display_name}] {url} adresinde zaman aşımı.", flush=True)
+                continue
+            except WebDriverException as e:
+                print(f"[{display_name}] WebDriver hatası: {e}", flush=True)
+                # Tarayıcı çökerse döngüyü kır
+                break 
             except Exception as e:
-                print(f"[{display_name}] {url} işlenirken hata oluştu: {e}")
+                print(f"[{display_name}] {url} işlenirken hata oluştu: {e}", flush=True)
                 continue
     
     except Exception as e:
-        print(f"[{display_name}] Selenium'da kritik bir hata oluştu: {e}")
+        print(f"[{display_name}] Selenium'da kritik bir hata oluştu: {e}", flush=True)
     finally:
         if driver:
             driver.quit()
+            print(f"[{display_name}] Tarayıcı kapatıldı.", flush=True)
 
-    print(f"BAŞARISIZ: {display_name} ({channel_id}) çözümlenemedi.")
+    print(f"BAŞARISIZ: {display_name} ({channel_id}) çözümlenemedi.", flush=True)
     return (display_name, channel_id, None)
 
 # =============================
@@ -202,23 +201,21 @@ if __name__ == "__main__":
     
     all_channels = get_channels_list()
     channels_to_resolve = all_channels[:MAX_CHANNELS]
-    print(f"Toplam {len(all_channels)} kanal bulundu, {len(channels_to_resolve)} tanesi işlenecek.")
+    print(f"Toplam {len(all_channels)} kanal bulundu, {len(channels_to_resolve)} tanesi işlenecek.", flush=True)
     
     payload = extract_payload_from_file("tvlogos.html")
     initial_raw_prefix = payload.get('initial_path', '')
-    print(f"Logo veritabanı yüklendi. Logo kök yolu: {initial_raw_prefix}")
+    print(f"Logo veritabanı yüklendi. Logo kök yolu: {initial_raw_prefix}", flush=True)
 
     url_cache = load_url_cache()
     resolved_from_cache = []
     unresolved = []
     for ch in channels_to_resolve:
         display_name, ch_id, _ = ch
-        if ch_id in url_cache:
-            resolved_from_cache.append((display_name, ch_id, url_cache[ch_id]))
-        else:
-            unresolved.append(ch)
+        if ch_id in url_cache: resolved_from_cache.append((display_name, ch_id, url_cache[ch_id]))
+        else: unresolved.append(ch)
             
-    print(f"{len(resolved_from_cache)} kanal önbellekten yüklendi. {len(unresolved)} kanal çözümlenecek.")
+    print(f"{len(resolved_from_cache)} kanal önbellekten yüklendi. {len(unresolved)} kanal çözümlenecek.", flush=True)
 
     results = resolved_from_cache
     with cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as executor:
@@ -227,12 +224,11 @@ if __name__ == "__main__":
             channel = future_to_channel[future]
             try:
                 resolved_channel = future.result()
-                if resolved_channel: # None gelme ihtimaline karşı kontrol
+                if resolved_channel:
                     results.append(resolved_channel)
-                    if resolved_channel[2]: # Sadece hls linki varsa önbelleğe kaydet
-                        url_cache[resolved_channel[1]] = resolved_channel[2]
+                    if resolved_channel[2]: url_cache[resolved_channel[1]] = resolved_channel[2]
             except Exception as exc:
-                print(f'{channel[0]} oluşturulurken bir istisna oluştu: {exc}')
+                print(f'{channel[0]} oluşturulurken bir istisna oluştu: {exc}', flush=True)
 
     save_url_cache(url_cache)
 
@@ -251,5 +247,5 @@ if __name__ == "__main__":
             out.write(line)
 
     end_time = time.time()
-    print(f"İşlem tamamlandı. {len(results_sorted)} kanal '{OUT_M3U}' dosyasına yazıldı.")
-    print(f"Toplam süre: {end_time - start_time:.2f} saniye.")
+    print(f"İşlem tamamlandı. {len(results_sorted)} kanal '{OUT_M3U}' dosyasına yazıldı.", flush=True)
+    print(f"Toplam süre: {end_time - start_time:.2f} saniye.", flush=True)
