@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# scraper.py (Performans ve Geri Bildirim için İyileştirilmiş Versiyon)
-# Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager
+# scraper.py (Network Dinleme Metodu ile Güçlendirilmiş Versiyon)
+# Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager, selenium-wire
 
 import os, re, json, time
 from typing import Optional, Tuple, List, Dict
@@ -9,14 +9,10 @@ import concurrent.futures as cf
 import requests
 from bs4 import BeautifulSoup
 
-# Selenium için gerekli importlar
-from selenium import webdriver
+# Selenium-wire'dan webdriver'ı import ediyoruz
+from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
 # =============================
@@ -24,7 +20,6 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 # =============================
 FAST_MODE       = os.getenv("FAST", "1") == "1"
 MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "25" if FAST_MODE else "999999"))
-# GitHub Actions runner'ları için CONCURRENCY değerini düşürdük. Bu, kaynak yetersizliğini önler.
 CONCURRENCY     = int(os.getenv("CONCURRENCY", "2" if FAST_MODE else "2")) 
 FOLDERS_ENV     = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
 PLAYER_FOLDERS  = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
@@ -113,71 +108,63 @@ def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
             channels.append((display_name, channel_id, None))
     return channels
 
-def find_m3u8_in_text(text: str) -> Optional[str]:
-    match = re.search(r"(https?://[^\s\"']+\.m3u8[^\s\"']*)", text)
-    if match: return match.group(1)
-    return None
-
 def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tuple[str, str, Optional[str]]:
     display_name, channel_id, hls_url = channel
     if hls_url: return channel
 
     player_urls = [f"https://daddylivestream.com/{folder}/stream-{channel_id}.php" for folder in PLAYER_FOLDERS]
     
-    chrome_options = Options()
+    # Selenium-wire için tarayıcı seçenekleri
+    chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+    chrome_options.add_argument('--mute-audio')
+
+
+    # Selenium-wire'a özel ayarlar
+    seleniumwire_options = {
+        'suppress_connection_errors': True,
+        'disable_capture': True # Performans için başlangıçta network yakalamayı kapat
+    }
     
     driver = None
     try:
-        print(f"[{display_name}] Tarayıcı başlatılıyor...", flush=True)
-        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-        driver.set_page_load_timeout(30)
+        print(f"[{display_name}] Tarayıcı (network modda) başlatılıyor...", flush=True)
+        # Selenium-wire'dan webdriver'ı başlatıyoruz
+        driver = webdriver.Chrome(
+            service=ChromeService(ChromeDriverManager().install()), 
+            options=chrome_options, 
+            seleniumwire_options=seleniumwire_options
+        )
+        driver.set_page_load_timeout(40)
 
         for url in player_urls:
             print(f"[{display_name}] URL deneniyor: {url}", flush=True)
             try:
+                # Network yakalamayı temizle ve sadece m3u8 için başlat
+                del driver.requests
+                driver.scopes = [
+                    '.*\\.m3u8.*'
+                ]
+                
                 driver.get(url)
-                # Bekleme süresini artırdık
-                wait = WebDriverWait(driver, 20) 
-                
-                hls = None
-                
-                # Önce iframe'i arayalım
-                try:
-                    iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-                    driver.switch_to.frame(iframe)
-                    print(f"[{display_name}] Iframe'e geçildi.", flush=True)
-                    # Iframe içeriğinin yüklenmesi için ek bekleme
-                    time.sleep(5) 
-                    iframe_source = driver.page_source
-                    hls = find_m3u8_in_text(iframe_source)
-                    if hls:
-                        print(f"[{display_name}] M3U8 iframe içinde bulundu!", flush=True)
-                    driver.switch_to.default_content()
-                except TimeoutException:
-                    print(f"[{display_name}] Iframe bulunamadı, ana sayfada aranıyor.", flush=True)
-                
-                # Eğer iframe'de bulamazsa veya iframe yoksa, ana sayfa kaynağında ara
-                if not hls:
-                    page_source = driver.page_source
-                    hls = find_m3u8_in_text(page_source)
-                    if hls:
-                        print(f"[{display_name}] M3U8 ana sayfada bulundu!", flush=True)
+
+                # Sayfanın .m3u8 dosyası için bir network isteği yapmasını bekle (30 saniye)
+                hls_request = driver.wait_for_request(r'\.m3u8', timeout=30)
+                hls = hls_request.url
 
                 if hls:
-                    print(f"BAŞARILI: {display_name} ({channel_id}) -> {hls}", flush=True)
+                    print(f"BAŞARILI (Network): {display_name} ({channel_id}) -> {hls}", flush=True)
                     return (display_name, channel_id, hls)
 
             except TimeoutException:
-                print(f"[{display_name}] {url} adresinde zaman aşımı.", flush=True)
+                print(f"[{display_name}] {url} adresinde m3u8 network isteği zaman aşımına uğradı.", flush=True)
                 continue
             except WebDriverException as e:
                 print(f"[{display_name}] WebDriver hatası: {e}", flush=True)
-                # Tarayıcı çökerse döngüyü kır
                 break 
             except Exception as e:
                 print(f"[{display_name}] {url} işlenirken hata oluştu: {e}", flush=True)
