@@ -26,11 +26,10 @@ jobs:
         with:
           python-version: '3.10' # İstediğiniz Python sürümünü kullanabilirsiniz
 
-      # 3. Adım: Google Chrome'u kur (Selenium için gerekli)
-      - name: Install Google Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+     # 3. Adım: Chrome tarayıcısını ve ilgili driver'ı kur
+      # Bu action, manuel kurulumdan daha kararlıdır.
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@latest
 
       # 4. Adım: Python kütüphanelerini kur
       # requirements.txt dosyasındaki kütüphaneleri yükler
