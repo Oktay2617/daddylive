@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# scraper.py (Network Dinleme Metodu ile Güçlendirilmiş ve M3U8 Formatı Düzeltilmiş Versiyon)
+# scraper.py (Her Kanal İçin Özel Header Ekleyen Son Versiyon)
 # Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager, selenium-wire, blinker==1.7.0
 
 import os
 import re
 import json
 import time
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Any
 import concurrent.futures as cf
 
 import requests
@@ -82,7 +82,7 @@ def pick_logo_path(display_name, payload):
 # =============================
 # Ana Scraper Fonksiyonları
 # =============================
-def load_url_cache() -> Dict[str, str]:
+def load_url_cache() -> Dict[str, Any]:
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r") as f:
             try:
@@ -91,11 +91,11 @@ def load_url_cache() -> Dict[str, str]:
                 return {}
     return {}
 
-def save_url_cache(cache: Dict[str, str]):
+def save_url_cache(cache: Dict[str, Any]):
     with open(CACHE_FILE, "w") as f:
         json.dump(cache, f, indent=2)
 
-def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
+def get_channels_list() -> List[Tuple[str, str, Optional[Dict[str, Any]]]]:
     if not os.path.exists(CHANNELS_HTML):
         print(f"'{CHANNELS_HTML}' dosyası bulunamadı.", flush=True)
         return []
@@ -114,9 +114,9 @@ def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
             channels.append((display_name, channel_id, None))
     return channels
 
-def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tuple[str, str, Optional[str]]:
-    display_name, channel_id, hls_url = channel
-    if hls_url: return channel
+def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[Dict[str, Any]]]) -> Tuple[str, str, Optional[Dict[str, Any]]]:
+    display_name, channel_id, stream_info = channel
+    if stream_info: return channel
 
     player_urls = [f"https://daddylivestream.com/{folder}/stream-{channel_id}.php" for folder in PLAYER_FOLDERS]
 
@@ -152,11 +152,16 @@ def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tu
                 driver.get(url)
 
                 hls_request = driver.wait_for_request(r'\.m3u8', timeout=30)
-                hls = hls_request.url
+                
+                stream_info = {
+                    "url": hls_request.url,
+                    "referer": hls_request.headers.get('Referer'),
+                    "user_agent": hls_request.headers.get('User-Agent')
+                }
 
-                if hls:
-                    print(f"BAŞARILI (Network): {display_name} ({channel_id}) -> {hls}", flush=True)
-                    return (display_name, channel_id, hls)
+                if stream_info["url"]:
+                    print(f"BAŞARILI (Network): {display_name} ({channel_id}) -> {stream_info['url']}", flush=True)
+                    return (display_name, channel_id, stream_info)
 
             except TimeoutException:
                 print(f"[{display_name}] {url} adresinde m3u8 network isteği zaman aşımına uğradı.", flush=True)
@@ -221,15 +226,24 @@ if __name__ == "__main__":
     
     with open(OUT_M3U, "w", encoding="utf-8") as out:
         out.write("#EXTM3U\n")
-        for display_name, ch_id, hls in results_sorted:
+        for display_name, ch_id, stream_info in results_sorted:
             logo_path = pick_logo_path(display_name, payload)
             logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_path}" if logo_path else ""
-            line = (
+            
+            # Kanal bilgilerini yaz
+            out.write(
                 f'#EXTINF:-1 tvg-id="{ch_id}" tvg-name="{display_name}" tvg-logo="{logo_url}" '
                 f'group-title="Daddylive", {display_name}\n'
-                f'{hls}\n'
             )
-            out.write(line)
+            
+            # Her kanal için özel başlıkları (headers) yazıyoruz
+            if stream_info.get('referer'):
+                out.write(f'#EXTVLCOPT:http-referrer={stream_info["referer"]}\n')
+            if stream_info.get('user_agent'):
+                out.write(f'#EXTVLCOPT:http-user-agent={stream_info["user_agent"]}\n')
+            
+            # Son olarak kanal linkini yaz
+            out.write(f'{stream_info.get("url")}\n')
 
     end_time = time.time()
     print(f"İşlem tamamlandı. {len(results_sorted)} kanal '{OUT_M3U}' dosyasına yazıldı.", flush=True)
