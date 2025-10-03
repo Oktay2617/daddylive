@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# scraper.py (Her Kanal İçin Özel Header Ekleyen Son Versiyon)
+# scraper.py (Önbellek Uyumlu ve Başlık Ayıklayan Nihai Versiyon)
 # Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager, selenium-wire, blinker==1.7.0
 
 import os
@@ -230,20 +230,23 @@ if __name__ == "__main__":
             logo_path = pick_logo_path(display_name, payload)
             logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_path}" if logo_path else ""
             
-            # Kanal bilgilerini yaz
             out.write(
                 f'#EXTINF:-1 tvg-id="{ch_id}" tvg-name="{display_name}" tvg-logo="{logo_url}" '
                 f'group-title="Daddylive", {display_name}\n'
             )
             
-            # Her kanal için özel başlıkları (headers) yazıyoruz
-            if stream_info.get('referer'):
-                out.write(f'#EXTVLCOPT:http-referrer={stream_info["referer"]}\n')
-            if stream_info.get('user_agent'):
-                out.write(f'#EXTVLCOPT:http-user-agent={stream_info["user_agent"]}\n')
-            
-            # Son olarak kanal linkini yaz
-            out.write(f'{stream_info.get("url")}\n')
+            # Hem eski (string) hem de yeni (dict) cache formatını kontrol ediyoruz
+            if isinstance(stream_info, dict):
+                # Yeni format: Başlıkları ve URL'i yaz
+                if stream_info.get('referer'):
+                    out.write(f'#EXTVLCOPT:http-referrer={stream_info["referer"]}\n')
+                if stream_info.get('user_agent'):
+                    out.write(f'#EXTVLCOPT:http-user-agent={stream_info["user_agent"]}\n')
+                out.write(f'{stream_info.get("url")}\n')
+            elif isinstance(stream_info, str):
+                # Eski format: Sadece URL'i yaz
+                out.write(f'{stream_info}\n')
+
 
     end_time = time.time()
     print(f"İşlem tamamlandı. {len(results_sorted)} kanal '{OUT_M3U}' dosyasına yazıldı.", flush=True)
