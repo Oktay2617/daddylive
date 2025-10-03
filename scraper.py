@@ -1,387 +1,240 @@
 #!/usr/bin/env python3
-# scraper.py — fast, parallel HLS resolver with template-var substitution for ${CHANNEL_KEY}
-# Requires: requests, beautifulsoup4
+# scraper.py (Selenium ile güncellenmiş versiyon)
+# Hızlı, paralel HLS çözümleyici.
+# Gerekli kütüphaneler: requests, beautifulsoup4, selenium, webdriver-manager
 
-import os, re, json, difflib, time, base64
+import os, re, json, time
 from typing import Optional, Tuple, List, Dict
 import concurrent.futures as cf
-from urllib.parse import urlparse ### DEĞİŞİKLİK ### (urlparse eklendi)
 
 import requests
-from requests.exceptions import SSLError, RequestException
 from bs4 import BeautifulSoup
 
-# ==============================
-# Speed-focused defaults (env)
-# ==============================
+# Selenium için gerekli importlar
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
+# =============================
+# Ayarlar ve Sabitler
+# =============================
 FAST_MODE       = os.getenv("FAST", "1") == "1"
-MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "100" if FAST_MODE else "999999"))
-CONCURRENCY     = int(os.getenv("CONCURRENCY", "12" if FAST_MODE else "6"))
+MAX_CHANNELS    = int(os.getenv("MAX_CHANNELS", "25" if FAST_MODE else "999999"))
+# DİKKAT: Selenium oldukça kaynak tüketir. CONCURRENCY değerini sisteminize göre ayarlayın.
+# Öneri: 4 veya 6 gibi daha düşük bir değerle başlayın.
+CONCURRENCY     = int(os.getenv("CONCURRENCY", "4" if FAST_MODE else "2"))
 FOLDERS_ENV     = os.getenv("FOLDERS", "stream" if FAST_MODE else "stream,player,cast,watch,plus,casting")
 PLAYER_FOLDERS  = [f.strip() for f in FOLDERS_ENV.split(",") if f.strip()]
-DLHD_INSECURE   = os.getenv("DLHD_INSECURE", "1") == "1"   # skip verify for dlhd.dad by default
-REQ_TIMEOUT     = float(os.getenv("REQ_TIMEOUT", "10" if FAST_MODE else "20"))
-RETRIES         = int(os.getenv("RETRIES", "1" if FAST_MODE else "3"))
-IFRAME_HOPS     = int(os.getenv("IFRAME_HOPS", "1" if FAST_MODE else "2"))
 
-CHANNELS_ENV    = [t.strip() for t in os.getenv("CHANNELS", "").split(",") if t.strip()]
+CHANNELS_URL    = "https://daddylivestream.com/24-7-channels.php"
+CHANNELS_HTML   = "247channels.html"
 OUT_M3U         = "out.m3u8"
+CACHE_FILE      = "url_cache.json"
 
-CHANNEL_ENDPOINTS = [
-    "https://dlhd.dad/daddy.json",
-    "https://daddylivestream.com/daddy.json",
-    "http://dlhd.dad/daddy.json",
-]
-
-TV_LOGOS_ENDPOINTS = [
-    "https://github.com/tv-logo/tv-logos/tree/main/countries/united-states",
-]
-
-DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.8",
-    "Connection": "keep-alive",
-}
-
-def _sess() -> requests.Session:
-    s = requests.Session()
-    s.headers.update(DEFAULT_HEADERS)
-    return s
-
-def http_get_text(url: str, *, referer: Optional[str] = None, verify: Optional[bool] = None) -> str:
-    sess = _sess()
-    headers = dict(DEFAULT_HEADERS)
-    if referer: headers["Referer"] = referer
-    if verify is None:
-        verify = not (DLHD_INSECURE and "dlhd.dad" in url)
-    last = None
-    for _ in range(RETRIES):
-        try:
-            r = sess.get(url, headers=headers, timeout=REQ_TIMEOUT, verify=verify, allow_redirects=True)
-            if 200 <= r.status_code < 300:
-                return r.text
-            last = f"HTTP {r.status_code}"
-        except (SSLError, RequestException) as e:
-            last = str(e)
-        time.sleep(0.2)
-    raise RuntimeError(f"GET failed: {url} ({last})")
-
-# ---------- GitHub tv-logos parsing ----------
-def extract_payload_from_github_tree_html(html: str) -> dict:
-    soup = BeautifulSoup(html, 'html.parser')
-    script_tag = soup.find('script', {
-        'type': 'application/json',
-        'data-target': 'react-app.embeddedData'
-    })
-    if not script_tag or not script_tag.string:
-        return {}
-    data = json.loads(script_tag.string)
-    payload = data.get('payload', {}) or {}
-    repo = payload.get('repo', {}) or payload.get('repository', {})
-    owner_login = (repo.get('ownerLogin') or repo.get('owner', {}).get('login') or 'tv-logo')
-    repo_name   = repo.get('name') or 'tv-logos'
-    branch      = payload.get('refInfo', {}).get('name') or payload.get('ref', 'main') or 'main'
-    current_path= (payload.get('path') or payload.get('currentPath') or 'countries/united-states').lstrip('/')
-    payload['initial_path'] = f"/{owner_login}/{repo_name}/{branch}/"
-    payload['current_path'] = current_path
-    return payload
-
-def search_tree_items(search_string: str, json_obj: dict) -> List[dict]:
-    matches, search_words = [], (search_string or "").lower().split()
-    for item in json_obj.get('tree', {}).get('items', []):
-        name = (item.get('name') or '').lower()
-        if name and any(w in name for w in search_words):
-            path = item.get('path') or json_obj.get('current_path', '') + '/' + item.get('name', '')
-            matches.append({'id': {'path': path}, 'source': ''})
-    return matches
-
-# ---------- Logo helpers ----------
-LOGO_OVERRIDES = {
-    "NFL Network": "countries/united-states/nfl-network.png",
-    "ESPN": "countries/united-states/espn.png",
-    "ESPN2": "countries/united-states/espn2.png",
-    "ABC USA": "countries/united-states/abc-us.png",
-    "NBC": "countries/united-states/nbc.png",
-    "CBS": "countries/united-states/cbs.png",
-    "FOX": "countries/united-states/fox.png",
-    "FS1": "countries/united-states/fox-sports-1.png",
-    "TNT": "countries/united-states/tnt.png",
-    "NBA TV": "countries/united-states/nba-tv.png",
-}
-
-def normalize_name(s: str) -> str:
-    return (s or "").lower().replace("&", "and").replace("+", "plus").strip()
-
-def tokens(s: str):
-    return re.findall(r'[a-z0-9]+', normalize_name(s))
-
-def best_fuzzy(needle: str, candidates: List[str]) -> Optional[str]:
-    n = normalize_name(needle)
-    cand_norm = [normalize_name(c) for c in candidates]
-    for i, c in enumerate(cand_norm):
-        if c == n: return candidates[i]
-    nt = set(tokens(n))
-    best_i, best_score = None, 0
-    for i, c in enumerate(cand_norm):
-        inter = len(nt & set(tokens(c)))
-        if inter > best_score:
-            best_i, best_score = i, inter
-    import difflib as dl
-    m = dl.get_close_matches(n, cand_norm, n=1, cutoff=0.72)
-    if m:
-        j = cand_norm.index(m[0])
-        return candidates[j]
-    return None
-
-def pick_logo_path(channel_name: str, payload: dict) -> str:
-    if channel_name in LOGO_OVERRIDES:
-        return LOGO_OVERRIDES[channel_name]
-    word = normalize_name(channel_name)
-    matches = search_tree_items(word, payload)
-    if not matches:
-        cleaned = re.sub(r'\b(network|channel|hd|tv|usa)\b', '', word).strip()
-        if cleaned and cleaned != word:
-            matches = search_tree_items(cleaned, payload)
-    if not matches:
-        return ""
-    def score(m):
-        base = os.path.basename((m.get('id') or {}).get('path','')).lower()
-        base = re.sub(r'\.(png|svg|jpg|jpeg)$', '', base)
-        return (len(set(tokens(base)) & set(tokens(channel_name))), -abs(len(base) - len(channel_name)))
-    matches.sort(key=score, reverse=True)
-    return (matches[0].get('id') or {}).get('path','')
-
-# ---------- HLS extraction with template substitution ----------
-M3U8_PATTERNS = [
-    re.compile(r'https?://[^\s\'"]+\.m3u8[^\s\'"]*', re.I),
-    re.compile(r'["\'](https?://[^"\']+\.m3u8[^"\']*)["\']', re.I),
-]
-B64_PAT = re.compile(r'(?:atob\(|btoa\()["\']([A-Za-z0-9+/=]{12,})["\']\)?', re.I)
-TEMPLATE_VAR_PAT = re.compile(r'\$\{([A-Za-z0-9_]+)\}')  # ${CHANNEL_KEY}
-ASSIGN_PAT = re.compile(r'(?:var|let|const)\s+([A-Za-z0-9_]+)\s*=\s*([\'"])(.*?)\2\s*;')  # const VAR="value";
-
-def decode_possible_b64(s: str) -> List[str]:
-    found = []
-    for m in B64_PAT.findall(s or ""):
-        try:
-            dec = base64.b64decode(m + "===")
-            dec = dec.decode("utf-8", errors="ignore")
-            if ".m3u8" in dec:
-                found.append(dec)
-        except Exception:
-            pass
-    return found
-
-def extract_template_vars(html: str) -> Dict[str,str]:
-    """Pull simple JS assignments like const CHANNEL_KEY='abc123' from inline scripts."""
-    vars: Dict[str,str] = {}
-    for name, _, value in ASSIGN_PAT.findall(html or ""):
-        # keep only uppercase-ish tokens or channel-related keys to avoid noise
-        if name.isupper() or "CHANNEL" in name.upper() or "KEY" in name.upper() or "TOKEN" in name.upper():
-            vars[name] = value
-    return vars
-
-def normalize_m3u8_url(url: str, html: str, ctx: Dict[str,str]) -> Optional[str]:
-    """Replace ${VAR} using ctx (or values found in html), strip stray backticks, and validate."""
-    if not url: return None
-    url = url.strip().strip('`').strip('"').strip("'")
-    # if contains templates, try to replace them
-    missing = False
-    def repl(m):
-        nonlocal missing
-        var = m.group(1)
-        if var in ctx:
-            return ctx[var]
-        # try to discover in html if not provided
-        assign = re.search(rf'(?:var|let|const)\s+{re.escape(var)}\s*=\s*([\'"])(.*?)\1\s*;', html or "", re.I)
-        if assign:
-            return assign.group(2)
-        missing = True
-        return m.group(0)
-    url2 = TEMPLATE_VAR_PAT.sub(repl, url)
-    if missing:
-        return None
-    # basic sanity
-    if ".m3u8" not in url2.lower():
-        return None
-    if "${" in url2:
-        return None
-    return url2
-
-def parse_m3u8_candidates(html: str) -> List[str]:
-    cands = []
-    for pat in M3U8_PATTERNS:
-        cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(html or "")]
-    for dec in decode_possible_b64(html or ""):
-        for pat in M3U8_PATTERNS:
-            cands += [m.group(0) if m.groups()==() else m.group(1) for m in pat.finditer(dec)]
-    # de-dup preserve order
-    seen, uniq = set(), []
-    for u in cands:
-        u = u.strip().strip('`').strip('"').strip("'")
-        if u not in seen:
-            seen.add(u); uniq.append(u)
-    return uniq
-
-def find_iframe_srcs(html: str) -> List[str]:
-    srcs = []
-    soup = BeautifulSoup(html or "", "html.parser")
-    for tag in soup.find_all("iframe"):
-        s = tag.get("src") or tag.get("data-src")
-        if s: srcs.append(s)
-    seen, uniq = set(), []
-    for u in srcs:
-        if u.startswith("//"): u = "https:" + u
-        if u not in seen:
-            seen.add(u); uniq.append(u)
-    return uniq[:2]  # cap to 2 iframes per page (speed)
-
-### DEĞİŞİKLİK ###: Fonksiyon artık (hls_url, referer_url) tuple'ı döndürecek
-def resolve_hls_for_channel_id(ch_id: str) -> Optional[Tuple[str, str]]:
-    ctx: Dict[str,str] = {}
-    for folder in PLAYER_FOLDERS:
-        page = f"https://dlhd.dad/{folder}/stream-{ch_id}.php"
-        try:
-            html = http_get_text(page, referer="https://dlhd.dad/")
-            ctx.update(extract_template_vars(html))
-
-            # scan this page
-            for cand in parse_m3u8_candidates(html):
-                real = normalize_m3u8_url(cand, html, ctx)
-                if real:
-                    return real, page ### DEĞİŞİKLİK ###: URL ile birlikte referer (page) döndürülüyor
-
-            # try iframes (one hop by default)
-            if IFRAME_HOPS > 0:
-                for i, iframe_url in enumerate(find_iframe_srcs(html)):
-                    if i >= IFRAME_HOPS: break
-                    try:
-                        iframe_html = http_get_text(iframe_url, referer=page)
-                        ctx.update(extract_template_vars(iframe_html))
-                        for cand in parse_m3u8_candidates(iframe_html):
-                            real = normalize_m3u8_url(cand, iframe_html, ctx)
-                            if real:
-                                return real, iframe_url ### DEĞİŞİKLİK ###: URL ile birlikte referer (iframe_url) döndürülüyor
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-    return None
-
-# ---------- Utility ----------
-def nuke(path: str):
-    if os.path.isfile(path):
-        os.remove(path)
-
-def fetch_first_ok_text(urls: List[str]) -> Tuple[str, str]:
-    last_err = None
-    for u in urls:
-        try:
-            txt = http_get_text(u)
-            return u, txt
-        except Exception as e:
-            last_err = e
-    raise SystemExit(f"All endpoints failed. Last error: {last_err}")
-
-# ---------- Main ----------
-def main():
-    nuke(OUT_M3U)
-
-    # Channels JSON
-    used_url, channels_text = fetch_first_ok_text(CHANNEL_ENDPOINTS)
+# =============================
+# Logo Eşleştirme Fonksiyonları (tvlogo.py'den alınmıştır)
+# =============================
+def extract_payload_from_file(file_path):
     try:
-        channels_data = json.loads(channels_text)
-    except json.JSONDecodeError as e:
-        raise SystemExit(f"Failed to parse channels JSON from {used_url}: {e}")
-    if not isinstance(channels_data, list):
-        raise SystemExit("Channels JSON is not a list.")
+        with open(file_path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        soup = BeautifulSoup(html, 'html.parser')
+        script_tag = soup.find('script', {'type': 'application/json', 'data-target': 'react-app.embeddedData'})
+        if not script_tag or not script_tag.string: return {}
+        data = json.loads(script_tag.string)
+        payload = data.get('payload', {})
+        repo = payload.get('repo', {})
+        owner_login = repo.get('ownerLogin') or 'tv-logo'
+        repo_name = repo.get('name') or 'tv-logos'
+        branch = payload.get('refInfo', {}).get('name') or 'main'
+        initial_path = f"/{owner_login}/{repo_name}/{branch}/"
+        payload['initial_path'] = initial_path
+        return payload
+    except Exception:
+        return {}
 
-    # Logos payload
-    _, logos_html = fetch_first_ok_text(TV_LOGOS_ENDPOINTS)
-    payload = extract_payload_from_github_tree_html(logos_html)
-    initial_raw_prefix = payload.get('initial_path', '')
+def pick_logo_path(display_name, payload):
+    tree = payload.get("tree", {})
+    items = tree.get("items", [])
+    if not items: return ""
+    
+    search_words = [word for word in re.split(r'[^a-zA-Z0-9]+', display_name.lower()) if word]
+    best_match = None
+    highest_score = 0
 
-    # Targets
-    targets = set(CHANNELS_ENV)
-    if os.path.isfile("channels.txt"):
-        with open("channels.txt", "r", encoding="utf-8") as f:
-            for line in f:
-                s = line.strip()
-                if s and not s.startswith("#"):
-                    targets.add(s)
+    for item in items:
+        path = item.get("path", "")
+        name_lower = item.get("name", "").lower()
+        if not any(ext in name_lower for ext in [".png", ".svg", ".jpg"]):
+            continue
 
-    all_names = [c.get("channel_name","") for c in channels_data if "channel_name" in c and "channel_id" in c]
-    name_to_id = {c["channel_name"]: c["channel_id"] for c in channels_data if "channel_name" in c and "channel_id" in c}
+        score = 0
+        for word in search_words:
+            if word in name_lower:
+                score += 1
+        
+        if score > highest_score:
+            highest_score = score
+            best_match = path
+    
+    return best_match if highest_score > 0 else ""
 
-    def iter_targets():
-        picked = []
-        if targets:
-            for want in targets:
-                got = best_fuzzy(want, all_names)
-                if got and got in name_to_id: picked.append(got)
-        else:
-            picked = all_names[:]
-        return [(nm, name_to_id[nm]) for nm in picked[:MAX_CHANNELS]]
+# =============================
+# Ana Scraper Fonksiyonları
+# =============================
+def load_url_cache() -> Dict[str, str]:
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r") as f:
+            return json.load(f)
+    return {}
 
-    todo = iter_targets()
+def save_url_cache(cache: Dict[str, str]):
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
 
-    # Resolve HLS in parallel
-    results = []
-    with cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as exe:
-        futs = {exe.submit(resolve_hls_for_channel_id, ch_id): (name, ch_id) for name, ch_id in todo}
-        for fut in cf.as_completed(futs):
-            name, ch_id = futs[fut]
-            hls_data = None
+def get_channels_list() -> List[Tuple[str, str, Optional[str]]]:
+    if not os.path.exists(CHANNELS_HTML):
+        print(f"'{CHANNELS_HTML}' dosyası bulunamadı. Lütfen {CHANNELS_URL} adresinden indirip kaydedin.")
+        return []
+    
+    with open(CHANNELS_HTML, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+    
+    links = soup.select("a[href*='stream-']")
+    channels = []
+    for link in links:
+        href = link.get("href", "")
+        match = re.search(r"stream-(\d+)\.php", href)
+        if match:
+            channel_id = match.group(1)
+            display_name = link.text.strip()
+            channels.append((display_name, channel_id, None))
+    return channels
+
+def resolve_channel_with_selenium(channel: Tuple[str, str, Optional[str]]) -> Tuple[str, str, Optional[str]]:
+    """Selenium kullanarak bir kanalın m3u8 linkini çözer."""
+    display_name, channel_id, hls_url = channel
+    if hls_url:
+        return channel
+
+    player_urls = [f"https://daddylivestream.com/{folder}/stream-{channel_id}.php" for folder in PLAYER_FOLDERS]
+    
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
+    driver = None
+    try:
+        # webdriver-manager sürücüyü otomatik olarak indirip kurar
+        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
+
+        for url in player_urls:
+            print(f"[{display_name}] URL deneniyor: {url}")
             try:
-                hls_data = fut.result()
-            except Exception:
-                pass
-            results.append((name, ch_id, hls_data))
+                driver.get(url)
+                # Oynatıcı genellikle bir iframe içinde olduğundan, iframe'i bekleyip ona geçiyoruz
+                try:
+                    wait = WebDriverWait(driver, 10)
+                    iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+                    driver.switch_to.frame(iframe)
+                    print(f"[{display_name}] Iframe'e geçildi.")
+                except TimeoutException:
+                    print(f"[{display_name}] Iframe bulunamadı, ana sayfada devam ediliyor.")
 
-    ### DEĞİŞİKLİK ###: M3U8 yazma döngüsü tamamen yenilendi
-    # Write M3U
-    written = 0
-    with open(OUT_M3U, "w", encoding="utf-8") as m3u:
-        m3u.write("#EXTM3U\n") # Dosyanın başına #EXTM3U etiketi ekleniyor
-        for display_name, ch_id, hls_data in results:
-            logo_rel = pick_logo_path(display_name, payload)
-            logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_rel}" if logo_rel else ""
-            
-            # Kanal bilgi satırını yaz
-            m3u.write(
-                f"#EXTINF:-1 tvg-name=\"{display_name}\" "
-                f"tvg-logo=\"{logo_url}\" group-title=\"USA (DADDY LIVE)\", {display_name}\n"
-            )
-
-            # Eğer HLS linki bulunduysa, ek başlıkları yaz
-            if hls_data:
-                hls_url, referer_url = hls_data
-                user_agent = DEFAULT_HEADERS.get("User-Agent", "")
+                # m3u8 içeren video etiketini bekliyoruz
+                video_wait = WebDriverWait(driver, 15)
+                video_element = video_wait.until(
+                    EC.presence_of_element_located((By.XPATH, "//video[contains(@src, '.m3u8')]"))
+                )
+                hls = video_element.get_attribute('src')
                 
-                # Referer'dan Origin'i türet
-                parsed_uri = urlparse(referer_url)
-                origin_url = f'{parsed_uri.scheme}://{parsed_uri.netloc}'
+                if hls:
+                    print(f"BAŞARILI: {display_name} ({channel_id}) -> {hls}")
+                    return (display_name, channel_id, hls)
 
-                m3u.write(f'#EXT-X-USER-AGENT:{user_agent}\n')
-                m3u.write(f'#EXT-X-REFERER:{referer_url}\n')
-                m3u.write(f'#EXT-X-ORIGIN:{origin_url}\n')
-                m3u.write(hls_url + "\n\n")
-            else:
-                # HLS bulunamadıysa, eski usül linki yaz
-                fallback_url = f"https://dlhd.dad/stream/stream-{ch_id}.php"
-                m3u.write(fallback_url + "\n\n")
+            except TimeoutException:
+                print(f"[{display_name}] {url} adresinde video elemanı zaman aşımına uğradı.")
+                continue
+            except Exception as e:
+                print(f"[{display_name}] {url} işlenirken hata oluştu: {e}")
+                continue
+    
+    except Exception as e:
+        print(f"[{display_name}] Selenium'da kritik bir hata oluştu: {e}")
+    finally:
+        if driver:
+            driver.quit()
 
-            written += 1
+    print(f"BAŞARISIZ: {display_name} ({channel_id}) çözümlenemedi.")
+    return (display_name, channel_id, None)
 
-    print(f"Channels processed (capped): {len(results)} / Max={MAX_CHANNELS}")
-    print(f"Playlist entries written: {written}")
-    if written == 0:
-        raise SystemExit("No entries written — endpoints blocked or names didn’t match.")
-
+# =============================
+# Ana Çalıştırma Bloğu
+# =============================
 if __name__ == "__main__":
-    main()
+    start_time = time.time()
+    
+    # 1. Kanalları ve logoları yükle
+    all_channels = get_channels_list()
+    channels_to_resolve = all_channels[:MAX_CHANNELS]
+    print(f"Toplam {len(all_channels)} kanal bulundu, {len(channels_to_resolve)} tanesi işlenecek.")
+    
+    payload = extract_payload_from_file("tvlogos.html")
+    initial_raw_prefix = payload.get('initial_path', '')
+    print(f"Logo veritabanı yüklendi. Logo kök yolu: {initial_raw_prefix}")
+
+    # 2. Önbelleği yükle ve çözümlenmiş kanalları ayır
+    url_cache = load_url_cache()
+    resolved_from_cache = []
+    unresolved = []
+    for ch in channels_to_resolve:
+        display_name, ch_id, _ = ch
+        if ch_id in url_cache:
+            resolved_from_cache.append((display_name, ch_id, url_cache[ch_id]))
+        else:
+            unresolved.append(ch)
+            
+    print(f"{len(resolved_from_cache)} kanal önbellekten yüklendi. {len(unresolved)} kanal çözümlenecek.")
+
+    # 3. Kalan kanalları paralel olarak çöz
+    results = resolved_from_cache
+    with cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as executor:
+        future_to_channel = {executor.submit(resolve_channel_with_selenium, ch): ch for ch in unresolved}
+        for future in cf.as_completed(future_to_channel):
+            channel = future_to_channel[future]
+            try:
+                resolved_channel = future.result()
+                results.append(resolved_channel)
+                # Başarılı olursa önbelleğe kaydet
+                if resolved_channel and resolved_channel[2]:
+                    url_cache[resolved_channel[1]] = resolved_channel[2]
+            except Exception as exc:
+                print(f'{channel[0]} oluşturulurken bir istisna oluştu: {exc}')
+
+    save_url_cache(url_cache)
+
+    # 4. Sonuçları out.m3u8 dosyasına yaz
+    results_sorted = sorted([r for r in results if r[2]], key=lambda r: r[0])
+    
+    with open(OUT_M3U, "w", encoding="utf-8") as out:
+        out.write("#EXTM3U\\n")
+        for display_name, ch_id, hls in results_sorted:
+            logo_path = pick_logo_path(display_name, payload)
+            logo_url = f"https://raw.githubusercontent.com{initial_raw_prefix}{logo_path}" if logo_path else ""
+            line = (
+                f'#EXTINF:-1 tvg-id="{ch_id}" tvg-name="{display_name}" tvg-logo="{logo_url}" '
+                f'group-title="Daddylive", {display_name}\\n'
+                f'{hls}\\n'
+            )
+            out.write(line)
+
+    end_time = time.time()
+    print(f"İşlem tamamlandı. {len(results_sorted)} kanal '{OUT_M3U}' dosyasına yazıldı.")
+    print(f"Toplam süre: {end_time - start_time:.2f} saniye.")
