@@ -1,6 +1,97 @@
 #EXTM3U
-#EXT-X-USER-AGENT:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36
-#EXT-X-REFERER:https://ilovetoplay.xyz/
-#EXT-X-ORIGIN:https://ilovetoplay.xyz
 #EXTINF:-1 tvg-id="302" tvg-name="A&E USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/3abn-dare-to-dream-network-us.png" group-title="Daddylive", A&E USA
-https://xyzdddd.mizhls.ru/lb/premium153/index.m3u8
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=hpflp1dkazt&v=1759515021268
+#EXTINF:-1 tvg-id="785" tvg-name="ABS-CBN" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/cbn-news-us.png" group-title="Daddylive", ABS-CBN
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=trwblpht8aj&v=1759515240407
+#EXTINF:-1 tvg-id="666" tvg-name="ACC Network USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/acc-network-extra-us.png" group-title="Daddylive", ACC Network USA
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=r0lpl4f7w9&v=1759515036899
+#EXTINF:-1 tvg-id="303" tvg-name="AMC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/amc-us.png" group-title="Daddylive", AMC USA
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=lcb6z27y65&v=1759515020602
+#EXTINF:-1 tvg-id="784" tvg-name="Alkass Four" tvg-logo="" group-title="Daddylive", Alkass Four
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=ka55gf8m32&v=1759515218866
+#EXTINF:-1 tvg-id="781" tvg-name="Alkass One" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/cornerstone-network-us.png" group-title="Daddylive", Alkass One
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=okarwe7hrqp&v=1759538633521
+#EXTINF:-1 tvg-id="783" tvg-name="Alkass Three" tvg-logo="" group-title="Daddylive", Alkass Three
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=h5ouzkdg3ov&v=1759515210047
+#EXTINF:-1 tvg-id="782" tvg-name="Alkass Two" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/3abn-dare-to-dream-network-us.png" group-title="Daddylive", Alkass Two
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=6ug2i6ne00m&v=1759515195436
+#EXTINF:-1 tvg-id="304" tvg-name="Animal Planet" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/animal-planet-us.png" group-title="Daddylive", Animal Planet
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=alikhxlwtm&v=1759515032887
+#EXTINF:-1 tvg-id="432" tvg-name="Arena Sport 1 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="Daddylive", Arena Sport 1 Croatia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/1080p/playlist.m3u8?token=k3nifaxalcj&v=1759515153392
+#EXTINF:-1 tvg-id="134" tvg-name="Arena Sport 1 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="Daddylive", Arena Sport 1 Premium
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=mvu4j244hib&v=1759515109980
+#EXTINF:-1 tvg-id="429" tvg-name="Arena Sport 1 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/fox-sports-1-us.png" group-title="Daddylive", Arena Sport 1 Serbia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=11r09trdiyi&v=1759515131021
+#EXTINF:-1 tvg-id="433" tvg-name="Arena Sport 2 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="Daddylive", Arena Sport 2 Croatia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=cusjie3kr8l&v=1759515156491
+#EXTINF:-1 tvg-id="135" tvg-name="Arena Sport 2 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="Daddylive", Arena Sport 2 Premium
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=t7yiudaze6&v=1759515113436
+#EXTINF:-1 tvg-id="430" tvg-name="Arena Sport 2 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-2-us.png" group-title="Daddylive", Arena Sport 2 Serbia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/1080p/playlist.m3u8?token=0ziund9ow33&v=1759515134803
+#EXTINF:-1 tvg-id="434" tvg-name="Arena Sport 3 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="Daddylive", Arena Sport 3 Croatia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/1080p/playlist.m3u8?token=sixy6jwk8v&v=1759515163035
+#EXTINF:-1 tvg-id="139" tvg-name="Arena Sport 3 Premium" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="Daddylive", Arena Sport 3 Premium
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=zhl4lt1q1rr&v=1759515123325
+#EXTINF:-1 tvg-id="431" tvg-name="Arena Sport 3 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-3-us.png" group-title="Daddylive", Arena Sport 3 Serbia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/1080p/playlist.m3u8?token=5lsu4dmn7k7&v=1759515140700
+#EXTINF:-1 tvg-id="580" tvg-name="Arena Sport 4 Croatia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="Daddylive", Arena Sport 4 Croatia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=q8y95i4p2k9&v=1759515164980
+#EXTINF:-1 tvg-id="581" tvg-name="Arena Sport 4 Serbia" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="Daddylive", Arena Sport 4 Serbia
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=2l3zv61kut3&v=1759515144576
+#EXTINF:-1 tvg-id="123" tvg-name="Astro SuperSport 1" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-logo-1962-us.png" group-title="Daddylive", Astro SuperSport 1
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/1080p/playlist.m3u8?token=knoq2hbuo9e&v=1759515057376
+#EXTINF:-1 tvg-id="124" tvg-name="Astro SuperSport 2" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-logo-1962-us.png" group-title="Daddylive", Astro SuperSport 2
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=e45anw3yyjo&v=1759515076841
+#EXTINF:-1 tvg-id="125" tvg-name="Astro SuperSport 3" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/3abn-dare-to-dream-network-us.png" group-title="Daddylive", Astro SuperSport 3
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=2hhtg2mqxob&v=1759538631280
+#EXTINF:-1 tvg-id="126" tvg-name="Astro SuperSport 4" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/bein-sports-4-us.png" group-title="Daddylive", Astro SuperSport 4
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=q2rayul9syh&v=1759515094011

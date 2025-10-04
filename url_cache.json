@@ -108,5 +108,15 @@
     "url": "https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/480p/playlist.m3u8?token=trwblpht8aj&v=1759515240407",
     "referer": "https://jxoxkplay.xyz/",
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+  },
+  "781": {
+    "url": "https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=okarwe7hrqp&v=1759538633521",
+    "referer": "https://jxoxkplay.xyz/",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+  },
+  "125": {
+    "url": "https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/4k/playlist.m3u8?token=2hhtg2mqxob&v=1759538631280",
+    "referer": "https://jxoxkplay.xyz/",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
   }
 }
