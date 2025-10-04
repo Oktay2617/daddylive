@@ -3,6 +3,10 @@
 #EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
 https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=hpflp1dkazt&v=1759515021268
+#EXTINF:-1 tvg-id="51" tvg-name="ABC USA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/abc-live-event-us.png" group-title="Daddylive", ABC USA
+#EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+https://card-images-save-two.s3.us-east-1.amazonaws.com/hls/720p/playlist.m3u8?token=53zrxsx6q9d&v=1759558430050
 #EXTINF:-1 tvg-id="785" tvg-name="ABS-CBN" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/cbn-news-us.png" group-title="Daddylive", ABS-CBN
 #EXTVLCOPT:http-referrer=https://jxoxkplay.xyz/
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36
